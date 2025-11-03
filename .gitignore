@@ -1,0 +1,174 @@
+# ========================================
+# GITIGNORE - HYDROPONIC MONITORING SYSTEM
+# ========================================
+# Prevent sensitive data from being committed to Git
+# ========================================
+
+# ========================================
+# SECRETS & CREDENTIALS
+# ========================================
+# Firebase credentials
+firebase-credentials.json
+serviceAccountKey.json
+*.pem
+*.key
+
+# API Keys
+api_keys.txt
+secrets.toml
+.env
+.env.local
+
+# Streamlit secrets (local development only)
+.streamlit/secrets.toml
+
+# ========================================
+# PYTHON
+# ========================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ========================================
+# ARDUINO / ESP32
+# ========================================
+# Build artifacts
+*.elf
+*.bin
+*.hex
+*.map
+
+# ========================================
+# OPERATING SYSTEM
+# ========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ========================================
+# DATA & LOGS
+# ========================================
+# Data files
+*.csv
+*.xlsx
+data/
+logs/
+*.log
+
+# Database backups
+*.sql
+*.db
+*.sqlite
+
+# ========================================
+# TEMPORARY FILES
+# ========================================
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# ========================================
+# DOCUMENTATION
+# ========================================
+# LaTeX
+*.aux
+*.out
+*.toc
+*.pdf (if generated)
+
+# ========================================
+# DEPENDENCIES
+# ========================================
+node_modules/
+package-lock.json
+
+# ========================================
+# STREAMLIT
+# ========================================
+# Streamlit cache
+.streamlit/
+
+# ========================================
+# PROJECT SPECIFIC
+# ========================================
+# Test images
+test_images/
+plant_photos/
+
+# Calibration data (if sensitive)
+calibration/
+
+# Hardware schematics (if proprietary)
+# schematics/
+
+# ========================================
+# KEEP THESE FILES
+# ========================================
+# Do NOT ignore:
+# - requirements.txt
+# - streamlit_app.py
+# - README.md
+# - LICENSE
+# - firmware/*.ino
+# - docs/*
+# - config/secrets.example
