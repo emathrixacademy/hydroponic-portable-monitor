@@ -227,19 +227,19 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION WITH LOCAL TENSORFLOW MODEL
+# AI CAMERA SECTION WITH TENSORFLOW.JS MODEL
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-# Load model once
+# Load TensorFlow.js model
 @st.cache_resource
-def load_model():
+def load_tfjs_model():
     try:
-        import tensorflow as tf
+        import tensorflowjs as tfjs
         import json
         
-        # Load model from GitHub repo
-        model = tf.keras.models.load_model('model/model.json')
+        # Load TensorFlow.js model
+        model = tfjs.converters.load_keras_model('model/model.json')
         
         # Load class names from metadata
         with open('model/metadata.json', 'r') as f:
@@ -251,7 +251,7 @@ def load_model():
         st.error(f"Model loading error: {e}")
         return None, None
 
-model, class_names = load_model()
+model, class_names = load_tfjs_model()
 
 picture = st.camera_input("📸 Capture your lettuce", label_visibility="visible")
 
@@ -261,7 +261,6 @@ if picture:
     if model is not None:
         with st.spinner("🤖 Analyzing with AI..."):
             try:
-                import tensorflow as tf
                 from PIL import Image
                 import io
                 
@@ -272,11 +271,11 @@ if picture:
                     img = img.convert('RGB')
                 
                 # Convert to array and normalize
-                img_array = np.array(img) / 255.0
+                img_array = np.array(img).astype('float32') / 255.0
                 img_array = np.expand_dims(img_array, axis=0)
                 
                 # Predict
-                predictions = model.predict(img_array, verbose=0)[0]
+                predictions = model.predict(img_array)[0]
                 
                 # Get results
                 max_idx = np.argmax(predictions)
@@ -288,7 +287,7 @@ if picture:
                     for i in range(len(class_names))
                 ]
                 
-                # Display info
+                # Display results
                 class_info = {
                     'full grown': {
                         "status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)",
@@ -350,7 +349,7 @@ if picture:
             except Exception as e:
                 st.error(f"❌ Prediction error: {str(e)}")
     else:
-        st.error("⚠️ Model not loaded. Please check model files.")
+        st.warning("⚠️ Model not loaded. Please check model files.")
 
 else:
     st.info("👆 **Tap camera button** to scan lettuce")
