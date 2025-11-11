@@ -227,8 +227,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-Here's the version that uses your actual trained model:
-python# AI CAMERA SECTION - STREAMLIT CAMERA + REAL TEACHABLE MACHINE MODEL
+# AI CAMERA SECTION - STREAMLIT CAMERA + REAL TEACHABLE MACHINE MODEL
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
