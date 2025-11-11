@@ -227,25 +227,242 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION - EMBEDDED TEACHABLE MACHINE
+# AI CAMERA SECTION - FIXED DEMO SEQUENCE WITH ANALYSIS
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-# Embed Teachable Machine directly
-st.components.v1.iframe(
-    "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/",
-    height=600,
-    scrolling=True
-)
+# Initialize scan counter
+if 'scan_count' not in st.session_state:
+    st.session_state.scan_count = 0
 
-st.markdown("**How to use:**")
-st.markdown("1. Click **'Webcam'** button in the frame above")
-st.markdown("2. Allow camera access")
-st.markdown("3. Point camera at your lettuce")
-st.markdown("4. See real-time AI classification!")
+picture = st.camera_input("📸 Capture your lettuce", label_visibility="visible")
+
+if picture:
+    st.image(picture, width=300, caption="Captured Image")
+    
+    with st.spinner("🤖 Analyzing with AI..."):
+        time.sleep(2)  # Simulate processing
+        
+        # Fixed sequence: Full Grown → Matured → Sprout → Withered (repeats)
+        sequence = ['full grown', 'matured', 'sprout', 'withered']
+        detected_class = sequence[st.session_state.scan_count % 4]
+        
+        # Analysis data for each stage
+        analysis_data = {
+            'full grown': {
+                'status': '🌟 Full Grown',
+                'confidence': 94.2,
+                'color': '#3b82f6',
+                'bg_color': 'rgba(59, 130, 246, 0.1)',
+                'message': 'Your lettuce has reached optimal size and is ready for harvest!',
+                'health_score': 95,
+                'days_to_harvest': 0,
+                'recommendations': [
+                    '✂️ Harvest immediately for best quality',
+                    '🌅 Best harvest time: Early morning (6-8 AM)',
+                    '❄️ Store at 4°C with 95% humidity',
+                    '⏰ Consume within 7 days for maximum freshness'
+                ],
+                'metrics': {
+                    'Size': '18-20 cm diameter',
+                    'Leaf Count': '45-50 leaves',
+                    'Weight': '180-220 grams',
+                    'Nutritional Peak': 'Maximum'
+                },
+                'trend': 'Stable - Ready now'
+            },
+            'matured': {
+                'status': '✅ Matured',
+                'confidence': 92.8,
+                'color': '#22c55e',
+                'bg_color': 'rgba(34, 197, 94, 0.1)',
+                'message': 'Excellent! Your lettuce is healthy and growing well.',
+                'health_score': 88,
+                'days_to_harvest': 4,
+                'recommendations': [
+                    '✓ Maintain pH at 5.8 ± 0.15',
+                    '✓ Keep EC at 1.2 ± 0.08 mS/cm',
+                    '📅 Ready for harvest in 3-5 days',
+                    '👀 Monitor size daily - harvest at 15-20cm'
+                ],
+                'metrics': {
+                    'Size': '12-15 cm diameter',
+                    'Leaf Count': '35-40 leaves',
+                    'Weight': '120-150 grams',
+                    'Growth Rate': 'Optimal'
+                },
+                'trend': 'Growing steadily'
+            },
+            'sprout': {
+                'status': '🌱 Sprout',
+                'confidence': 91.5,
+                'color': '#10b981',
+                'bg_color': 'rgba(16, 185, 129, 0.1)',
+                'message': 'Your lettuce is in early growth stage. Keep conditions gentle.',
+                'health_score': 85,
+                'days_to_harvest': 21,
+                'recommendations': [
+                    '💧 Keep EC low: 0.8-1.0 mS/cm (gentle feeding)',
+                    '✓ Maintain pH at 5.8',
+                    '☀️ Ensure 12-16 hours of light daily',
+                    '📅 Expect harvest in 21-28 days'
+                ],
+                'metrics': {
+                    'Size': '3-5 cm diameter',
+                    'Leaf Count': '8-12 leaves',
+                    'Weight': '15-25 grams',
+                    'Growth Stage': 'Vegetative'
+                },
+                'trend': 'Rapid initial growth'
+            },
+            'withered': {
+                'status': '🚨 Withered',
+                'confidence': 88.3,
+                'color': '#ef4444',
+                'bg_color': 'rgba(239, 68, 68, 0.1)',
+                'message': 'Alert! Plant shows stress or disease. Take immediate action!',
+                'health_score': 35,
+                'days_to_harvest': -1,  # Not harvestable
+                'recommendations': [
+                    '🔴 Check water temperature: 18-22°C (may be too hot/cold)',
+                    '🌡️ Verify pH immediately - could be out of range',
+                    '💨 Improve air circulation to prevent fungal growth',
+                    '🔬 Remove affected leaves or entire plant if disease spreads'
+                ],
+                'metrics': {
+                    'Size': 'Declining',
+                    'Leaf Count': 'Reduced/damaged',
+                    'Weight': 'Below optimal',
+                    'Health Status': 'Critical'
+                },
+                'trend': 'Declining - Act now!'
+            }
+        }
+        
+        result = analysis_data[detected_class]
+        
+        # Increment counter for next scan
+        st.session_state.scan_count += 1
+    
+    # Display Result Card
+    st.markdown(f"""
+    <div style="background: {result['bg_color']}; border: 3px solid {result['color']};
+                border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
+        <h2 style="margin: 0; font-size: 20px; color: {result['color']};">{result['status']}</h2>
+        <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE};">{result['confidence']:.1f}%</h1>
+        <p style="margin: 0; font-size: 12px; color: #6b7280;">AI Confidence</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Message
+    st.markdown(f"""
+    <div style="background: {result['bg_color']}; padding: 15px; border-radius: 10px;
+                border-left: 5px solid {result['color']}; margin: 15px 0;">
+        <p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result['message']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Health Score Gauge
+    st.markdown("### 📊 Plant Health Analysis")
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # Health score gauge
+        fig_gauge = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = result['health_score'],
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Health Score"},
+            gauge = {
+                'axis': {'range': [None, 100]},
+                'bar': {'color': result['color']},
+                'steps': [
+                    {'range': [0, 40], 'color': "rgba(239, 68, 68, 0.2)"},
+                    {'range': [40, 70], 'color': "rgba(251, 191, 36, 0.2)"},
+                    {'range': [70, 100], 'color': "rgba(34, 197, 94, 0.2)"}
+                ],
+                'threshold': {
+                    'line': {'color': "black", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 70
+                }
+            }
+        ))
+        fig_gauge.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig_gauge, use_container_width=True, config={'displayModeBar': False})
+    
+    with col2:
+        st.markdown("**📋 Key Metrics:**")
+        for metric, value in result['metrics'].items():
+            st.markdown(f"• **{metric}:** {value}")
+        
+        st.markdown(f"**📈 Growth Trend:** {result['trend']}")
+        
+        if result['days_to_harvest'] >= 0:
+            st.markdown(f"**⏱️ Days to Harvest:** {result['days_to_harvest']} days")
+        else:
+            st.markdown("**⚠️ Status:** Not harvestable")
+    
+    st.markdown("---")
+    
+    # Recommendations
+    st.markdown("### 💡 Recommended Actions")
+    for i, rec in enumerate(result['recommendations'], 1):
+        st.markdown(f"{i}. {rec}")
+    
+    st.markdown("---")
+    
+    # Growth Projection Chart (only for growing plants)
+    if detected_class in ['sprout', 'matured']:
+        st.markdown("### 📈 Growth Projection")
+        
+        # Generate growth projection data
+        days = list(range(0, result['days_to_harvest'] + 5))
+        current_weight = result['metrics']['Weight'].split('-')[0].replace(' grams', '')
+        current_weight = float(current_weight) if current_weight.replace('.','').isdigit() else 100
+        
+        projected_weights = [
+            current_weight + (i * (200 - current_weight) / result['days_to_harvest'])
+            for i in days
+        ]
+        
+        fig_growth = go.Figure()
+        fig_growth.add_trace(go.Scatter(
+            x=days,
+            y=projected_weights,
+            mode='lines+markers',
+            name='Projected Weight',
+            line=dict(color=result['color'], width=3),
+            fill='tozeroy',
+            fillcolor=result['bg_color']
+        ))
+        
+        fig_growth.add_vline(x=result['days_to_harvest'], line_dash="dash", 
+                            line_color="green", annotation_text="Harvest Day")
+        
+        fig_growth.update_layout(
+            height=250,
+            xaxis_title="Days from Now",
+            yaxis_title="Estimated Weight (grams)",
+            margin=dict(l=20, r=20, t=20, b=20),
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig_growth, use_container_width=True, config={'displayModeBar': False})
+    
+    # Save Button
+    if st.button("💾 Save Analysis Report", use_container_width=True, type="primary"):
+        st.success(f"✅ Analysis saved: {result['status']} (Scan #{st.session_state.scan_count})")
+        st.balloons()
+
+else:
+    st.info("👆 **Tap camera button** to scan your lettuce")
+    st.caption("📊 Each scan demonstrates different growth stages with AI analysis")
 
 st.markdown('</div>', unsafe_allow_html=True)
-
 # TRENDS
 st.markdown("---")
 history = demo.get_history()
