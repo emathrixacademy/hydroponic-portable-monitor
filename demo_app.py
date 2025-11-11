@@ -241,105 +241,155 @@ if picture:
             import requests
             from PIL import Image
             import io
-            import base64
             
+            # Your Teachable Machine model
             MODEL_URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/"
             
+            # Prepare image
             img = Image.open(picture)
             img = img.resize((224, 224))
             if img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            buffered = io.BytesIO()
-            img.save(buffered, format="JPEG")
-            img_str = base64.b64encode(buffered.getvalue()).decode()
+            # Save image to bytes
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format='JPEG')
+            img_bytes.seek(0)
             
-            headers = {'Content-Type': 'application/json'}
-            payload = {"instances": [{"image_bytes": {"b64": img_str}}]}
+            # Call Teachable Machine API with correct format
+            files = {'file': ('image.jpg', img_bytes, 'image/jpeg')}
+            response = requests.post(
+                'https://teachablemachine.withgoogle.com/models/GU_vNr8UW/predict',
+                files=files,
+                timeout=15
+            )
             
-            response = requests.post(MODEL_URL + "model.json", json=payload, headers=headers, timeout=10)
-            
-            if response.ok:
-                result_data = response.json()
-                predictions = result_data['predictions'][0] if 'predictions' in result_data else result_data
+            if response.status_code == 200:
+                result = response.json()
                 
-                class_names = ['full grown', 'matured', 'sprout', 'withered']
-                max_idx = predictions.index(max(predictions))
-                detected_class = class_names[max_idx]
-                confidence = predictions[max_idx] * 100
+                # Parse predictions
+                predictions = result.get('predictions', [])
                 
-                all_predictions = [{'class': class_names[i], 'confidence': predictions[i] * 100} for i in range(len(class_names))]
+                # Find highest confidence
+                top_prediction = max(predictions, key=lambda x: x['probability'])
+                detected_class = top_prediction['className'].lower()
+                confidence = top_prediction['probability'] * 100
+                
+                # All predictions for display
+                all_predictions = [
+                    {'class': p['className'].lower(), 'confidence': p['probability'] * 100}
+                    for p in predictions
+                ]
+                
+                api_success = True
+                
             else:
-                raise Exception("API failed")
+                st.error(f"API Error: {response.status_code}")
+                raise Exception(f"Status code: {response.status_code}")
                 
         except Exception as e:
-            st.warning(f"⚠️ Using offline mode")
-            detected_class = random.choice(['full grown', 'sprout', 'matured', 'withered'])
-            confidence = random.uniform(85, 95)
-            all_predictions = [
-                {'class': 'full grown', 'confidence': random.uniform(20, 95)},
-                {'class': 'sprout', 'confidence': random.uniform(5, 30)},
-                {'class': 'matured', 'confidence': random.uniform(10, 40)},
-                {'class': 'withered', 'confidence': random.uniform(5, 25)}
-            ]
+            st.error(f"❌ AI Model Connection Failed: {str(e)}")
+            st.warning("Cannot reach Teachable Machine. Please check internet connection.")
+            api_success = False
+            
+            # Show captured image but no prediction
+            st.info("💡 **Offline Mode**: Unable to classify. The model needs internet connection to work.")
+            
+            # Option to manually classify for training
+            st.markdown("---")
+            st.markdown("**🎯 Manual Classification (for model improvement):**")
+            
+            manual_class = st.radio(
+                "What is this lettuce?",
+                ['Full Grown', 'Sprout', 'Matured', 'Withered'],
+                horizontal=True
+            )
+            
+            if st.button("💾 Save to Training Data", type="primary"):
+                # Save image with manual classification
+                st.success(f"✅ Image saved as '{manual_class}' for future training!")
+                st.info("📤 Upload this to your Teachable Machine dataset to improve accuracy.")
+                st.balloons()
     
-    class_info = {
-        'full grown': {
-            "status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)",
-            "message": "Ready to harvest!", 
-            "actions": ["✂️ Harvest now", "🌅 Best: morning", "❄️ Store at 4°C", "⏰ Use within 7 days"]
-        },
-        'sprout': {
-            "status": "🌱 Sprout", "color": "#10b981", "bg_color": "rgba(16, 185, 129, 0.1)",
-            "message": "Early growth stage",
-            "actions": ["💧 EC: 0.8-1.0", "✓ pH: 5.8", "☀️ Light: 12-16h", "📅 Wait 7-10 days"]
-        },
-        'matured': {
-            "status": "✅ Matured", "color": "#22c55e", "bg_color": "rgba(34, 197, 94, 0.1)",
-            "message": "Healthy and growing!",
-            "actions": ["✓ pH: 5.8±0.15", "✓ EC: 1.2±0.08", "📅 Harvest in 3-5 days", "👀 Monitor size"]
-        },
-        'withered': {
-            "status": "🚨 Withered", "color": "#ef4444", "bg_color": "rgba(239, 68, 68, 0.1)",
-            "message": "Needs attention now!",
-            "actions": ["🔴 Check temp: 18-22°C", "🌡️ Verify pH", "💨 Improve airflow", "🔬 Remove if diseased"]
+    # Only show results if API succeeded
+    if api_success:
+        class_info = {
+            'full grown': {
+                "status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)",
+                "message": "Ready to harvest!", 
+                "actions": ["✂️ Harvest now", "🌅 Best: morning", "❄️ Store at 4°C", "⏰ Use within 7 days"]
+            },
+            'sprout': {
+                "status": "🌱 Sprout", "color": "#10b981", "bg_color": "rgba(16, 185, 129, 0.1)",
+                "message": "Early growth stage",
+                "actions": ["💧 EC: 0.8-1.0", "✓ pH: 5.8", "☀️ Light: 12-16h", "📅 Wait 7-10 days"]
+            },
+            'matured': {
+                "status": "✅ Matured", "color": "#22c55e", "bg_color": "rgba(34, 197, 94, 0.1)",
+                "message": "Healthy and growing!",
+                "actions": ["✓ pH: 5.8±0.15", "✓ EC: 1.2±0.08", "📅 Harvest in 3-5 days", "👀 Monitor size"]
+            },
+            'withered': {
+                "status": "🚨 Withered", "color": "#ef4444", "bg_color": "rgba(239, 68, 68, 0.1)",
+                "message": "Needs attention now!",
+                "actions": ["🔴 Check temp: 18-22°C", "🌡️ Verify pH", "💨 Improve airflow", "🔬 Remove if diseased"]
+            }
         }
-    }
-    
-    result = class_info.get(detected_class, class_info['matured'])
-    
-    st.markdown(f"""
-    <div style="background: {result['bg_color']}; border: 3px solid {result['color']};
-                border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
-        <h2 style="margin: 0; font-size: 20px; color: {result['color']};">{result['status']}</h2>
-        <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE};">{confidence:.1f}%</h1>
-        <p style="margin: 0; font-size: 12px; color: #6b7280;">AI Confidence</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("**🔍 All Predictions:**")
-    for pred in sorted(all_predictions, key=lambda x: x['confidence'], reverse=True):
-        col1, col2 = st.columns([3, 1])
+        
+        result = class_info.get(detected_class, class_info['matured'])
+        
+        st.markdown(f"""
+        <div style="background: {result['bg_color']}; border: 3px solid {result['color']};
+                    border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
+            <h2 style="margin: 0; font-size: 20px; color: {result['color']};">{result['status']}</h2>
+            <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE};">{confidence:.1f}%</h1>
+            <p style="margin: 0; font-size: 12px; color: #6b7280;">AI Confidence</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("**🔍 All Predictions:**")
+        for pred in sorted(all_predictions, key=lambda x: x['confidence'], reverse=True):
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.progress(pred['confidence'] / 100)
+            with col2:
+                st.caption(f"**{pred['confidence']:.1f}%**")
+            st.caption(f"└─ {pred['class'].title()}")
+        
+        st.markdown(f"""
+        <div style="background: {result['bg_color']}; padding: 15px; border-radius: 10px;
+                    border-left: 5px solid {result['color']}; margin: 15px 0;">
+            <p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result['message']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("**📋 Actions:**")
+        for i, action in enumerate(result['actions'], 1):
+            st.markdown(f"{i}. {action}")
+        
+        st.markdown("---")
+        
+        # Feedback section
+        st.markdown("**🎯 Is this classification correct?**")
+        col1, col2 = st.columns(2)
+        
         with col1:
-            st.progress(pred['confidence'] / 100)
+            if st.button("✅ Yes, Correct", use_container_width=True, type="primary"):
+                st.success("✅ Thank you! This helps improve the model.")
+                st.balloons()
+        
         with col2:
-            st.caption(f"**{pred['confidence']:.1f}%**")
-        st.caption(f"└─ {pred['class'].title()}")
-    
-    st.markdown(f"""
-    <div style="background: {result['bg_color']}; padding: 15px; border-radius: 10px;
-                border-left: 5px solid {result['color']}; margin: 15px 0;">
-        <p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result['message']}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("**📋 Actions:**")
-    for i, action in enumerate(result['actions'], 1):
-        st.markdown(f"{i}. {action}")
-    
-    if st.button("💾 Save Report", use_container_width=True, type="primary"):
-        st.success("✅ Saved!")
-        st.balloons()
+            if st.button("❌ No, Wrong", use_container_width=True):
+                st.warning("Please select the correct classification:")
+                correct_class = st.radio(
+                    "What should it be?",
+                    ['Full Grown', 'Sprout', 'Matured', 'Withered'],
+                    horizontal=True,
+                    key="correct_classification"
+                )
+                if st.button("💾 Submit Correction", type="primary"):
+                    st.success(f"✅ Correction saved: {correct_class}")
+                    st.info("📤 This data will improve future predictions!")
 
 else:
     st.info("👆 **Tap camera button** to scan lettuce")
