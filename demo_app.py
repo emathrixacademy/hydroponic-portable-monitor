@@ -227,122 +227,130 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION - STREAMLIT CAMERA + REAL TEACHABLE MACHINE MODEL
+# AI CAMERA SECTION - JAVASCRIPT TEACHABLE MACHINE WITH CAPTURE
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-# Use Streamlit's camera input
-picture = st.camera_input("📸 Take a photo of your lettuce")
+st.components.v1.html("""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 10px; margin: 0; }
+        #webcam-container { margin: 15px auto; }
+        canvas { border: 3px solid #6B21A8; border-radius: 15px; max-width: 100%; }
+        button { 
+            background: linear-gradient(135deg, #6B21A8 0%, #9333EA 100%);
+            color: white; border: none; padding: 12px 30px; font-size: 16px;
+            font-weight: bold; border-radius: 10px; cursor: pointer; margin: 10px;
+        }
+        button:disabled { opacity: 0.5; }
+        .status { color: #6B21A8; font-weight: bold; margin: 10px; font-size: 14px; }
+        .result { border-radius: 15px; padding: 20px; margin: 15px auto; max-width: 90%; }
+        .actions { text-align: left; background: #f9fafb; padding: 15px; border-radius: 10px; margin: 15px auto; max-width: 90%; }
+        .pred { margin: 8px 0; }
+        .bar-bg { background: #e5e7eb; border-radius: 8px; height: 20px; }
+        .bar { height: 100%; transition: width 0.3s; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="status" id="status">Loading...</div>
+    <div id="webcam-container"></div>
+    <button id="capture-btn" onclick="captureImage()" style="display:none;">📸 Capture & Analyze</button>
+    <div id="result"></div>
 
-if picture:
-    from PIL import Image
-    import io
-    import base64
-    import requests
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
     
-    # Display captured image
-    st.image(picture, caption="Captured Image", use_column_width=True)
-    
-    with st.spinner("🤖 Analyzing with AI model..."):
-        try:
-            # Prepare image for Teachable Machine
-            img = Image.open(picture)
-            img = img.resize((224, 224)).convert('RGB')
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/";
+        let model, webcam, isPredicting = false;
+
+        const info = {
+            'full grown': { emoji: '🌟', color: '#3b82f6', title: 'Full Grown - Ready!', 
+                actions: ['✂️ Harvest now', '🌅 Morning best', '❄️ Store 4°C', '⏰ Use in 7 days'] },
+            'matured': { emoji: '✅', color: '#22c55e', title: 'Matured - Healthy',
+                actions: ['✓ pH: 5.8±0.15', '✓ EC: 1.2±0.08', '📅 3-5 days', '👀 Monitor'] },
+            'sprout': { emoji: '🌱', color: '#10b981', title: 'Sprout - Early',
+                actions: ['💧 EC: 0.8-1.0', '✓ pH: 5.8', '☀️ 12-16h', '📅 21-28 days'] },
+            'withered': { emoji: '🚨', color: '#ef4444', title: 'Withered - Alert',
+                actions: ['🔴 18-22°C', '🌡️ Check pH', '💨 Airflow', '🔬 Remove'] }
+        };
+
+        async function init() {
+            try {
+                document.getElementById('status').innerHTML = '🔄 Loading model...';
+                model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+                
+                document.getElementById('status').innerHTML = '📷 Starting camera...';
+                webcam = new tmImage.Webcam(320, 320, false);
+                await webcam.setup({ facingMode: "environment" });
+                await webcam.play();
+                
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                document.getElementById('capture-btn').style.display = 'inline-block';
+                document.getElementById('status').innerHTML = '✅ Ready! Point at lettuce and capture';
+                
+            } catch (e) {
+                document.getElementById('status').innerHTML = '❌ Error: ' + e.message;
+            }
+        }
+
+        async function captureImage() {
+            if (isPredicting) return;
+            isPredicting = true;
             
-            # Convert to base64
-            buffered = io.BytesIO()
-            img.save(buffered, format="JPEG")
-            img_base64 = base64.b64encode(buffered.getvalue()).decode()
+            const btn = document.getElementById('capture-btn');
+            btn.innerHTML = '🔄 Analyzing...';
+            btn.disabled = true;
             
-            # Call Teachable Machine model
-            MODEL_URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/"
-            
-            # Try to get predictions from the model
-            # Note: Teachable Machine doesn't have a direct REST API, so we'll load via JavaScript
-            # For now, use TensorFlow.js approach or manual classification
-            
-            # Since direct API doesn't work, let's use manual classification based on image analysis
-            # OR you can ask user to confirm what they see
-            st.warning("⚠️ Teachable Machine models work best with live webcam. Select the classification:")
-            
-            detected_class = st.radio(
-                "What stage is this lettuce?",
-                ['full grown', 'matured', 'sprout', 'withered'],
-                horizontal=True,
-                key="manual_classify"
-            )
-            
-            # Simulate confidence based on selection
-            confidence = 92.5
-            
-            # Recommendations
-            recommendations = {
-                'full grown': {
-                    'emoji': '🌟', 'color': '#3b82f6', 'bg': 'rgba(59, 130, 246, 0.1)',
-                    'title': 'Full Grown - Ready for Harvest!',
-                    'actions': ['✂️ Harvest immediately for best quality', '🌅 Best time: Early morning (6-8 AM)', 
-                               '❄️ Store at 4°C with 95% humidity', '⏰ Consume within 7 days']
-                },
-                'matured': {
-                    'emoji': '✅', 'color': '#22c55e', 'bg': 'rgba(34, 197, 94, 0.1)',
-                    'title': 'Matured - Healthy & Growing',
-                    'actions': ['✓ Maintain pH at 5.8 ± 0.15', '✓ Keep EC at 1.2 ± 0.08 mS/cm', 
-                               '📅 Ready to harvest in 3-5 days', '👀 Monitor size daily']
-                },
-                'sprout': {
-                    'emoji': '🌱', 'color': '#10b981', 'bg': 'rgba(16, 185, 129, 0.1)',
-                    'title': 'Sprout - Early Growth',
-                    'actions': ['💧 Keep EC low: 0.8-1.0 mS/cm', '✓ Maintain pH at 5.8', 
-                               '☀️ Ensure 12-16 hours light daily', '📅 Expect harvest in 21-28 days']
-                },
-                'withered': {
-                    'emoji': '🚨', 'color': '#ef4444', 'bg': 'rgba(239, 68, 68, 0.1)',
-                    'title': 'Withered - Needs Attention!',
-                    'actions': ['🔴 Check water temp: 18-22°C', '🌡️ Verify pH level immediately', 
-                               '💨 Improve air circulation', '🔬 Remove if disease spreads']
-                }
+            try {
+                const predictions = await model.predict(webcam.canvas);
+                predictions.sort((a, b) => b.probability - a.probability);
+                
+                const top = predictions[0];
+                const name = top.className.toLowerCase();
+                const conf = (top.probability * 100).toFixed(1);
+                const rec = info[name] || info['matured'];
+                
+                let html = '<div class="result" style="background: ' + rec.color + '20; border: 3px solid ' + rec.color + ';">' +
+                    '<h2 style="margin: 0; color: ' + rec.color + ';">' + rec.emoji + ' ' + rec.title + '</h2>' +
+                    '<h1 style="margin: 10px 0; color: #6B21A8; font-size: 44px;">' + conf + '%</h1>' +
+                    '<p style="color: #6b7280;">AI Confidence</p></div>' +
+                    '<div class="actions"><h3 style="color: #6B21A8; margin-top: 0;">📋 Actions:</h3>';
+                
+                rec.actions.forEach((a, i) => {
+                    html += '<p style="margin: 8px 0;"><strong>' + (i+1) + '.</strong> ' + a + '</p>';
+                });
+                
+                html += '</div><div class="actions"><h3 style="color: #6B21A8; margin-top: 0;">🔍 All:</h3>';
+                
+                predictions.forEach((p, i) => {
+                    const prob = (p.probability * 100).toFixed(1);
+                    const barColor = i === 0 ? rec.color : '#d1d5db';
+                    html += '<div class="pred"><div style="display: flex; justify-content: space-between; margin-bottom: 3px;">' +
+                        '<span style="font-weight: 600; font-size: 13px;">' + p.className + '</span>' +
+                        '<span style="font-weight: bold; color: ' + rec.color + '; font-size: 13px;">' + prob + '%</span></div>' +
+                        '<div class="bar-bg"><div class="bar" style="background: ' + barColor + '; width: ' + prob + '%;"></div></div></div>';
+                });
+                
+                html += '</div>';
+                document.getElementById('result').innerHTML = html;
+                
+            } catch (e) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">❌ Error: ' + e.message + '</p>';
             }
             
-            rec = recommendations[detected_class]
-            
-            # Display result
-            st.markdown(f"""
-            <div style="background: {rec['bg']}; border: 3px solid {rec['color']};
-                        border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
-                <h2 style="margin: 0; color: {rec['color']}; font-size: 20px;">
-                    {rec['emoji']} {rec['title']}
-                </h2>
-                <h1 style="margin: 10px 0; color: {PURPLE}; font-size: 48px;">{confidence:.1f}%</h1>
-                <p style="margin: 0; color: #6b7280;">Classification Confidence</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("### 📋 Recommended Actions:")
-            for i, action in enumerate(rec['actions'], 1):
-                st.markdown(f"{i}. {action}")
-            
-            # Save button
-            if st.button("💾 Save Analysis Report", type="primary", use_container_width=True):
-                st.success(f"✅ Analysis saved: {rec['title']}")
-                st.balloons()
-                
-        except Exception as e:
-            st.error(f"❌ Analysis error: {str(e)}")
-
-else:
-    st.info("👆 **Click the camera button above** to take a photo of your lettuce plant")
-    
-    # Show model link
-    st.markdown("**🤖 AI Model:** Trained with Google Teachable Machine")
-    st.markdown("[View Model](https://teachablemachine.withgoogle.com/models/GU_vNr8UW/)")
-    
-    st.markdown("""
-    **🎯 AI can detect:**
-    - 🌟 **Full Grown** - Ready for harvest
-    - ✅ **Matured** - Healthy and growing  
-    - 🌱 **Sprout** - Early growth stage
-    - 🚨 **Withered** - Needs attention
-    """)
+            btn.innerHTML = '📸 Capture Again';
+            btn.disabled = false;
+            isPredicting = false;
+        }
+        
+        init();
+    </script>
+</body>
+</html>
+""", height=1100)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
