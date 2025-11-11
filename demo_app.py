@@ -227,105 +227,22 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION - DIRECT TEACHABLE MACHINE API
+# AI CAMERA SECTION - EMBEDDED TEACHABLE MACHINE
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-picture = st.camera_input("📸 Capture your lettuce", label_visibility="visible")
+# Embed Teachable Machine directly
+st.components.v1.iframe(
+    "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/",
+    height=600,
+    scrolling=True
+)
 
-if picture:
-    st.image(picture, use_column_width=True, caption="Captured Image")
-    
-    with st.spinner("🤖 Analyzing with AI..."):
-        try:
-            import requests
-            from PIL import Image
-            import io
-            import base64
-            
-            # Your Teachable Machine model URL
-            MODEL_URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/"
-            
-            # Prepare image
-            img = Image.open(picture).resize((224, 224)).convert('RGB')
-            
-            # Convert to base64
-            buffered = io.BytesIO()
-            img.save(buffered, format="JPEG")
-            img_base64 = base64.b64encode(buffered.getvalue()).decode()
-            
-            # Call API - correct endpoint
-            response = requests.post(
-                MODEL_URL,
-                json={"image": img_base64},
-                headers={"Content-Type": "application/json"},
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                predictions = result.get('predictions', result)
-                
-                # Find top prediction
-                if isinstance(predictions, list):
-                    top = max(predictions, key=lambda x: x.get('probability', x.get('confidence', 0)))
-                    detected_class = top.get('className', top.get('class', '')).lower()
-                    confidence = (top.get('probability', top.get('confidence', 0))) * 100
-                    
-                    all_predictions = [
-                        {'class': p.get('className', p.get('class', '')).lower(), 
-                         'confidence': (p.get('probability', p.get('confidence', 0))) * 100}
-                        for p in predictions
-                    ]
-                else:
-                    raise Exception("Unexpected API response format")
-                
-                # Display results
-                class_info = {
-                    'full grown': {"status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)", "message": "Ready to harvest!", "actions": ["✂️ Harvest now", "🌅 Best: morning", "❄️ Store at 4°C"]},
-                    'sprout': {"status": "🌱 Sprout", "color": "#10b981", "bg_color": "rgba(16, 185, 129, 0.1)", "message": "Early growth", "actions": ["💧 EC: 0.8-1.0", "✓ pH: 5.8", "☀️ Light: 12-16h"]},
-                    'matured': {"status": "✅ Matured", "color": "#22c55e", "bg_color": "rgba(34, 197, 94, 0.1)", "message": "Healthy!", "actions": ["✓ pH: 5.8±0.15", "✓ EC: 1.2±0.08", "📅 Harvest in 3-5 days"]},
-                    'withered': {"status": "🚨 Withered", "color": "#ef4444", "bg_color": "rgba(239, 68, 68, 0.1)", "message": "Needs attention!", "actions": ["🔴 Check temp", "🌡️ Verify pH", "💨 Improve airflow"]}
-                }
-                
-                result_info = class_info.get(detected_class, class_info['matured'])
-                
-                st.markdown(f"""
-                <div style="background: {result_info['bg_color']}; border: 3px solid {result_info['color']};
-                            border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
-                    <h2 style="margin: 0; font-size: 20px; color: {result_info['color']};">{result_info['status']}</h2>
-                    <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE};">{confidence:.1f}%</h1>
-                    <p style="margin: 0; font-size: 12px; color: #6b7280;">AI Confidence</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown("**🔍 All Predictions:**")
-                for pred in sorted(all_predictions, key=lambda x: x['confidence'], reverse=True):
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.progress(pred['confidence'] / 100)
-                    with col2:
-                        st.caption(f"**{pred['confidence']:.1f}%**")
-                    st.caption(f"└─ {pred['class'].title()}")
-                
-                st.markdown(f"""<div style="background: {result_info['bg_color']}; padding: 15px; border-radius: 10px; border-left: 5px solid {result_info['color']}; margin: 15px 0;"><p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result_info['message']}</p></div>""", unsafe_allow_html=True)
-                
-                st.markdown("**📋 Actions:**")
-                for i, action in enumerate(result_info['actions'], 1):
-                    st.markdown(f"{i}. {action}")
-                
-                if st.button("💾 Save", use_container_width=True, type="primary"):
-                    st.success("✅ Saved!")
-                    st.balloons()
-            else:
-                raise Exception(f"API returned status {response.status_code}")
-                
-        except Exception as e:
-            st.error(f"❌ API Error: {str(e)}")
-            st.info("💡 Make sure your Teachable Machine model is published and public")
-
-else:
-    st.info("👆 Tap camera to scan")
+st.markdown("**How to use:**")
+st.markdown("1. Click **'Webcam'** button in the frame above")
+st.markdown("2. Allow camera access")
+st.markdown("3. Point camera at your lettuce")
+st.markdown("4. See real-time AI classification!")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
