@@ -227,96 +227,73 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION WITH TENSORFLOW.JS MODEL
+# AI CAMERA SECTION - DIRECT TEACHABLE MACHINE API
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-
-# Load TensorFlow.js model
-@st.cache_resource
-def load_tfjs_model():
-    try:
-        import tensorflowjs as tfjs
-        import json
-        
-        # Load TensorFlow.js model
-        model = tfjs.converters.load_keras_model('model/model.json')
-        
-        # Load class names from metadata
-        with open('model/metadata.json', 'r') as f:
-            metadata = json.load(f)
-            class_names = [label.strip() for label in metadata['labels']]
-        
-        return model, class_names
-    except Exception as e:
-        st.error(f"Model loading error: {e}")
-        return None, None
-
-model, class_names = load_tfjs_model()
 
 picture = st.camera_input("📸 Capture your lettuce", label_visibility="visible")
 
 if picture:
     st.image(picture, use_column_width=True, caption="Captured Image")
     
-    if model is not None:
-        with st.spinner("🤖 Analyzing with AI..."):
-            try:
-                from PIL import Image
-                import io
+    with st.spinner("🤖 Analyzing with AI..."):
+        try:
+            import requests
+            from PIL import Image
+            import io
+            import base64
+            
+            # Your Teachable Machine model URL
+            MODEL_URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/"
+            
+            # Prepare image
+            img = Image.open(picture).resize((224, 224)).convert('RGB')
+            
+            # Convert to base64
+            buffered = io.BytesIO()
+            img.save(buffered, format="JPEG")
+            img_base64 = base64.b64encode(buffered.getvalue()).decode()
+            
+            # Call API - correct endpoint
+            response = requests.post(
+                MODEL_URL,
+                json={"image": img_base64},
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                predictions = result.get('predictions', result)
                 
-                # Prepare image
-                img = Image.open(picture)
-                img = img.resize((224, 224))
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                
-                # Convert to array and normalize
-                img_array = np.array(img).astype('float32') / 255.0
-                img_array = np.expand_dims(img_array, axis=0)
-                
-                # Predict
-                predictions = model.predict(img_array)[0]
-                
-                # Get results
-                max_idx = np.argmax(predictions)
-                detected_class = class_names[max_idx].lower()
-                confidence = float(predictions[max_idx] * 100)
-                
-                all_predictions = [
-                    {'class': class_names[i].lower(), 'confidence': float(predictions[i] * 100)}
-                    for i in range(len(class_names))
-                ]
+                # Find top prediction
+                if isinstance(predictions, list):
+                    top = max(predictions, key=lambda x: x.get('probability', x.get('confidence', 0)))
+                    detected_class = top.get('className', top.get('class', '')).lower()
+                    confidence = (top.get('probability', top.get('confidence', 0))) * 100
+                    
+                    all_predictions = [
+                        {'class': p.get('className', p.get('class', '')).lower(), 
+                         'confidence': (p.get('probability', p.get('confidence', 0))) * 100}
+                        for p in predictions
+                    ]
+                else:
+                    raise Exception("Unexpected API response format")
                 
                 # Display results
                 class_info = {
-                    'full grown': {
-                        "status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)",
-                        "message": "Ready to harvest!", 
-                        "actions": ["✂️ Harvest now", "🌅 Best: morning", "❄️ Store at 4°C", "⏰ Use within 7 days"]
-                    },
-                    'sprout': {
-                        "status": "🌱 Sprout", "color": "#10b981", "bg_color": "rgba(16, 185, 129, 0.1)",
-                        "message": "Early growth stage",
-                        "actions": ["💧 EC: 0.8-1.0", "✓ pH: 5.8", "☀️ Light: 12-16h", "📅 Wait 7-10 days"]
-                    },
-                    'matured': {
-                        "status": "✅ Matured", "color": "#22c55e", "bg_color": "rgba(34, 197, 94, 0.1)",
-                        "message": "Healthy and growing!",
-                        "actions": ["✓ pH: 5.8±0.15", "✓ EC: 1.2±0.08", "📅 Harvest in 3-5 days", "👀 Monitor size"]
-                    },
-                    'withered': {
-                        "status": "🚨 Withered", "color": "#ef4444", "bg_color": "rgba(239, 68, 68, 0.1)",
-                        "message": "Needs attention now!",
-                        "actions": ["🔴 Check temp: 18-22°C", "🌡️ Verify pH", "💨 Improve airflow", "🔬 Remove if diseased"]
-                    }
+                    'full grown': {"status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)", "message": "Ready to harvest!", "actions": ["✂️ Harvest now", "🌅 Best: morning", "❄️ Store at 4°C"]},
+                    'sprout': {"status": "🌱 Sprout", "color": "#10b981", "bg_color": "rgba(16, 185, 129, 0.1)", "message": "Early growth", "actions": ["💧 EC: 0.8-1.0", "✓ pH: 5.8", "☀️ Light: 12-16h"]},
+                    'matured': {"status": "✅ Matured", "color": "#22c55e", "bg_color": "rgba(34, 197, 94, 0.1)", "message": "Healthy!", "actions": ["✓ pH: 5.8±0.15", "✓ EC: 1.2±0.08", "📅 Harvest in 3-5 days"]},
+                    'withered': {"status": "🚨 Withered", "color": "#ef4444", "bg_color": "rgba(239, 68, 68, 0.1)", "message": "Needs attention!", "actions": ["🔴 Check temp", "🌡️ Verify pH", "💨 Improve airflow"]}
                 }
                 
-                result = class_info.get(detected_class, class_info['matured'])
+                result_info = class_info.get(detected_class, class_info['matured'])
                 
                 st.markdown(f"""
-                <div style="background: {result['bg_color']}; border: 3px solid {result['color']};
+                <div style="background: {result_info['bg_color']}; border: 3px solid {result_info['color']};
                             border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
-                    <h2 style="margin: 0; font-size: 20px; color: {result['color']};">{result['status']}</h2>
+                    <h2 style="margin: 0; font-size: 20px; color: {result_info['color']};">{result_info['status']}</h2>
                     <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE};">{confidence:.1f}%</h1>
                     <p style="margin: 0; font-size: 12px; color: #6b7280;">AI Confidence</p>
                 </div>
@@ -331,29 +308,24 @@ if picture:
                         st.caption(f"**{pred['confidence']:.1f}%**")
                     st.caption(f"└─ {pred['class'].title()}")
                 
-                st.markdown(f"""
-                <div style="background: {result['bg_color']}; padding: 15px; border-radius: 10px;
-                            border-left: 5px solid {result['color']}; margin: 15px 0;">
-                    <p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result['message']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"""<div style="background: {result_info['bg_color']}; padding: 15px; border-radius: 10px; border-left: 5px solid {result_info['color']}; margin: 15px 0;"><p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result_info['message']}</p></div>""", unsafe_allow_html=True)
                 
                 st.markdown("**📋 Actions:**")
-                for i, action in enumerate(result['actions'], 1):
+                for i, action in enumerate(result_info['actions'], 1):
                     st.markdown(f"{i}. {action}")
                 
-                if st.button("💾 Save Report", use_container_width=True, type="primary"):
-                    st.success("✅ Analysis saved!")
+                if st.button("💾 Save", use_container_width=True, type="primary"):
+                    st.success("✅ Saved!")
                     st.balloons()
+            else:
+                raise Exception(f"API returned status {response.status_code}")
                 
-            except Exception as e:
-                st.error(f"❌ Prediction error: {str(e)}")
-    else:
-        st.warning("⚠️ Model not loaded. Please check model files.")
+        except Exception as e:
+            st.error(f"❌ API Error: {str(e)}")
+            st.info("💡 Make sure your Teachable Machine model is published and public")
 
 else:
-    st.info("👆 **Tap camera button** to scan lettuce")
-    st.markdown("**🎯 AI Detects:** 🌟 Full Grown • 🌱 Sprout • ✅ Matured • 🚨 Withered")
+    st.info("👆 Tap camera to scan")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
