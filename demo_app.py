@@ -30,127 +30,48 @@ st.markdown(f"""
     header {{visibility: hidden;}}
     .stDeployButton {{visibility: hidden;}}
     
-    /* Remove default Streamlit padding */
+    /* Phone frame with black border */
     .main {{
-        padding: 0;
-        max-width: 100%;
-    }}
-    
-    /* Phone frame container */
-    .phone-frame {{
-        position: relative;
         max-width: 400px;
-        margin: 50px auto;
-        background-image: url('https://raw.githubusercontent.com/emathrixacademy/hydroponic-portable-monitor/main/assets/phone-frame.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        padding: 70px 25px 70px 25px;  /* Adjust based on your phone frame */
-        min-height: 800px;
-    }}
-    
-    /* Content inside phone */
-    .block-container {{
-        padding: 35px 20px 20px 20px;
-        max-height: 740px;
-        overflow-y: auto;
-        overflow-x: hidden;
+        margin: 30px auto;
         background: {WHITE};
-        border-radius: 35px;
+        padding: 0;
+        border-radius: 45px;
+        box-shadow: 0 30px 90px rgba(0,0,0,0.5);
+        border: 16px solid #1a1a1a;
+        position: relative;
+        overflow: hidden;
     }}
     
-    /* Custom scrollbar */
-    .block-container::-webkit-scrollbar {{
-        width: 4px;
+    /* Phone notch */
+    .main::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 160px;
+        height: 30px;
+        background: #1a1a1a;
+        border-radius: 0 0 20px 20px;
+        z-index: 1000;
     }}
-    .block-container::-webkit-scrollbar-track {{
-        background: transparent;
-    }}
-    .block-container::-webkit-scrollbar-thumb {{
-        background: {PURPLE};
+    
+    /* Phone button (optional) */
+    .main::after {{
+        content: '';
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 140px;
+        height: 5px;
+        background: rgba(0,0,0,0.3);
         border-radius: 10px;
+        z-index: 1000;
     }}
     
-    /* Rest of your existing styles... */
-    .app-header {{
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 15px 0;
-        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
-        border-radius: 15px;
-        color: {WHITE};
-    }}
-    .app-header h1 {{
-        font-size: 24px;
-        margin: 5px 0;
-        color: {GOLD};
-    }}
-    .app-header p {{
-        font-size: 12px;
-        margin: 0;
-        opacity: 0.9;
-    }}
-    
-    .metric-card {{
-        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
-        color: {WHITE};
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        margin: 10px 0;
-        box-shadow: 0 4px 15px rgba(107,33,168,0.3);
-    }}
-    .metric-card h3 {{
-        font-size: 14px;
-        margin: 0 0 8px 0;
-        opacity: 0.9;
-        font-weight: 500;
-    }}
-    .metric-card h1 {{
-        font-size: 36px;
-        margin: 0;
-        color: {GOLD};
-        font-weight: bold;
-    }}
-    .metric-card p {{
-        font-size: 11px;
-        margin: 8px 0 0 0;
-        opacity: 0.8;
-    }}
-    
-    .status-badge {{
-        background: rgba(34, 197, 94, 0.2);
-        color: #22c55e;
-        padding: 8px 16px;
-        border-radius: 20px;
-        display: inline-block;
-        font-size: 12px;
-        font-weight: 600;
-        margin: 10px 0;
-    }}
-    
-    h2 {{
-        color: {PURPLE};
-        font-size: 18px;
-        margin: 20px 0 10px 0;
-        font-weight: 600;
-    }}
-    
-    .chart-container {{
-        background: #f9fafb;
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-    }}
-    
-    .app-footer {{
-        text-align: center;
-        padding: 15px 0;
-        margin-top: 20px;
-        color: {PURPLE};
-        font-size: 11px;
-        border-top: 1px solid #e5e7eb;
-    }}
+    /* Rest of your styles... */
 </style>
 """, unsafe_allow_html=True)
 
