@@ -1,5 +1,7 @@
 """
-🌱 Hydroponic Monitor - Simple Demo
+🌱 HydroVision - Mobile Demo
+Designed for presentation/pitch demo
+Simple, clean, mobile-first interface
 """
 
 import streamlit as st
@@ -9,206 +11,337 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 
-st.set_page_config(page_title="Hydroponic Monitor", page_icon="🌱", layout="wide")
+st.set_page_config(
+    page_title="HydroVision",
+    page_icon="🌱",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
+# ═══════════════════════════════════════════
+# SET COLORS - Purple, White, Gold
+# ═══════════════════════════════════════════
 PURPLE = "#6B21A8"
 LIGHT_PURPLE = "#9333EA"
 GOLD = "#FCD34D"
 WHITE = "#FFFFFF"
+DARK = "#1a1a1a"
 
+# ═══════════════════════════════════════════
+# MOBILE PHONE STYLING
+# ═══════════════════════════════════════════
 st.markdown(f"""
 <style>
-    .main {{background-color: {WHITE}; padding: 2rem;}}
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    .big-metric {{
-        background: {PURPLE};
-        color: {WHITE};
-        padding: 30px;
-        border-radius: 10px;
-        text-align: center;
-        margin: 10px 0;
-    }}
-    .big-metric h1 {{
-        font-size: 48px;
-        margin: 10px 0;
-        color: {GOLD};
-    }}
-    .big-metric h3 {{
-        font-size: 18px;
-        margin: 0;
-        opacity: 0.9;
-    }}
-    /* Mobile phone frame */
-    .main {{
-        max-width: 400px;
-        margin: 0 auto;
-        background-color: {WHITE};
-        padding: 1rem;
-        border-radius: 30px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        border: 12px solid #1a1a1a;
-    }}
-    
-    /* Hide Streamlit elements */
+    /* Remove Streamlit branding */
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}
     header {{visibility: hidden;}}
     .stDeployButton {{visibility: hidden;}}
     
-    /* Scrollable content */
+    /* Mobile phone frame */
+    .main {{
+        max-width: 380px;
+        margin: 20px auto;
+        background: {WHITE};
+        padding: 0;
+        border-radius: 35px;
+        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+        border: 14px solid {DARK};
+        position: relative;
+    }}
+    
+    /* Phone notch */
+    .main::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 25px;
+        background: {DARK};
+        border-radius: 0 0 15px 15px;
+        z-index: 1000;
+    }}
+    
+    /* Scrollable content area */
     .block-container {{
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        max-height: 800px;
+        padding: 35px 20px 20px 20px;
+        max-height: 740px;
         overflow-y: auto;
+        overflow-x: hidden;
     }}
     
     /* Custom scrollbar */
     .block-container::-webkit-scrollbar {{
-        width: 6px;
+        width: 4px;
+    }}
+    .block-container::-webkit-scrollbar-track {{
+        background: transparent;
     }}
     .block-container::-webkit-scrollbar-thumb {{
         background: {PURPLE};
         border-radius: 10px;
     }}
     
-    /* Metric cards */
-    .big-metric {{
-        background: {PURPLE};
-        color: {WHITE};
-        padding: 25px;
-        border-radius: 15px;
+    /* Header */
+    .app-header {{
         text-align: center;
-        margin: 10px 0;
-        box-shadow: 0 4px 12px rgba(107,33,168,0.3);
+        margin-bottom: 20px;
+        padding: 15px 0;
+        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
+        border-radius: 15px;
+        color: {WHITE};
     }}
-    .big-metric h1 {{
-        font-size: 42px;
-        margin: 10px 0;
+    .app-header h1 {{
+        font-size: 24px;
+        margin: 5px 0;
         color: {GOLD};
     }}
-    .big-metric h3 {{
-        font-size: 16px;
+    .app-header p {{
+        font-size: 12px;
         margin: 0;
         opacity: 0.9;
     }}
-    .big-metric p {{
-        font-size: 13px;
-        margin: 5px 0 0 0;
+    
+    /* Metric cards */
+    .metric-card {{
+        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
+        color: {WHITE};
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin: 10px 0;
+        box-shadow: 0 4px 15px rgba(107,33,168,0.3);
+    }}
+    .metric-card h3 {{
+        font-size: 14px;
+        margin: 0 0 8px 0;
+        opacity: 0.9;
+        font-weight: 500;
+    }}
+    .metric-card h1 {{
+        font-size: 36px;
+        margin: 0;
+        color: {GOLD};
+        font-weight: bold;
+    }}
+    .metric-card p {{
+        font-size: 11px;
+        margin: 8px 0 0 0;
         opacity: 0.8;
+    }}
+    
+    /* Status badge */
+    .status-badge {{
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        padding: 8px 16px;
+        border-radius: 20px;
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 10px 0;
+    }}
+    
+    /* Section titles */
+    h2 {{
+        color: {PURPLE};
+        font-size: 18px;
+        margin: 20px 0 10px 0;
+        font-weight: 600;
+    }}
+    
+    /* Chart container */
+    .chart-container {{
+        background: #f9fafb;
+        padding: 15px;
+        border-radius: 12px;
+        margin: 10px 0;
+    }}
+    
+    /* Footer */
+    .app-footer {{
+        text-align: center;
+        padding: 15px 0;
+        margin-top: 20px;
+        color: {PURPLE};
+        font-size: 11px;
+        border-top: 1px solid #e5e7eb;
     }}
 </style>
 """, unsafe_allow_html=True)
 
-class SimpleDemo:
+# ═══════════════════════════════════════════
+# SIMPLE DATA GENERATOR
+# ═══════════════════════════════════════════
+class DemoData:
     def __init__(self):
         self.ph = 5.80
         self.ec = 1.20
         self.temp = 20.5
+        self.step = 0
     
-    def get_data(self):
+    def get_current(self):
+        self.step += 1
+        
+        # Natural variance
+        ph = self.ph + np.sin(self.step * 0.1) * 0.03 + np.random.normal(0, 0.02)
+        ec = self.ec + np.sin(self.step * 0.05) * 0.02 + np.random.normal(0, 0.01)
+        temp = self.temp + np.random.normal(0, 0.2)
+        
         return {
-            'pH': round(self.ph + np.random.normal(0, 0.02), 2),
-            'ec': round(self.ec + np.random.normal(0, 0.01), 2),
-            'temp': round(self.temp + np.random.normal(0, 0.2), 1)
+            'pH': round(ph, 2),
+            'ec': round(ec, 2),
+            'temp': round(temp, 1),
+            'time': datetime.now().strftime('%I:%M %p')
         }
     
-    def get_history(self):
+    def get_history(self, points=30):
         history = []
-        for i in range(50):
-            t = datetime.now() - timedelta(minutes=i*5)
+        for i in range(points):
+            t = datetime.now() - timedelta(minutes=i*10)
             history.append({
                 'time': t,
-                'pH': 5.80 + np.random.normal(0, 0.05),
-                'ec': 1.20 + np.random.normal(0, 0.03)
+                'pH': 5.80 + np.sin(i * 0.2) * 0.08 + np.random.normal(0, 0.03),
+                'ec': 1.20 + np.sin(i * 0.15) * 0.04 + np.random.normal(0, 0.015)
             })
         return pd.DataFrame(history[::-1])
 
-if 'demo' not in st.session_state:
-    st.session_state.demo = SimpleDemo()
+if 'data' not in st.session_state:
+    st.session_state.data = DemoData()
 
-demo = st.session_state.demo
+demo = st.session_state.data
 
-st.markdown(f"<h1 style='color:{PURPLE}; text-align:center;'>🌱 Hydroponic Monitoring System</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align:center; color:{LIGHT_PURPLE};'>Real-time monitoring for optimal plant growth</p>", unsafe_allow_html=True)
-st.markdown("---")
+# ═══════════════════════════════════════════
+# APP HEADER
+# ═══════════════════════════════════════════
+st.markdown(f"""
+<div class="app-header">
+    <h1>🌱 HydroVision</h1>
+    <p>Smart Hydroponic Monitoring</p>
+</div>
+""", unsafe_allow_html=True)
 
-data = demo.get_data()
+# System status
+st.markdown('<div class="status-badge">🟢 System Online</div>', unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns(3)
+# ═══════════════════════════════════════════
+# CURRENT READINGS
+# ═══════════════════════════════════════════
+current = demo.get_current()
 
-with col1:
-    st.markdown(f"""
-        <div class="big-metric">
-            <h3>pH Level</h3>
-            <h1>{data['pH']:.2f}</h1>
-            <p>Target: 5.8</p>
-        </div>
-    """, unsafe_allow_html=True)
+st.markdown(f"<p style='text-align:center; color:#6b7280; font-size:11px; margin:10px 0;'>Last updated: {current['time']}</p>", unsafe_allow_html=True)
 
-with col2:
-    st.markdown(f"""
-        <div class="big-metric">
-            <h3>EC Level</h3>
-            <h1>{data['ec']:.2f}</h1>
-            <p>Target: 1.2 mS/cm</p>
-        </div>
-    """, unsafe_allow_html=True)
+# pH Level
+st.markdown(f"""
+<div class="metric-card">
+    <h3>pH Level</h3>
+    <h1>{current['pH']:.2f}</h1>
+    <p>Target: 5.8 ± 0.15</p>
+</div>
+""", unsafe_allow_html=True)
 
-with col3:
-    st.markdown(f"""
-        <div class="big-metric">
-            <h3>Water Temp</h3>
-            <h1>{data['temp']:.1f}°C</h1>
-            <p>Optimal: 18-22°C</p>
-        </div>
-    """, unsafe_allow_html=True)
+# EC Level
+st.markdown(f"""
+<div class="metric-card">
+    <h3>EC Level</h3>
+    <h1>{current['ec']:.2f}</h1>
+    <p>Target: 1.2 ± 0.08 mS/cm</p>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
+# Water Temperature
+st.markdown(f"""
+<div class="metric-card">
+    <h3>Water Temperature</h3>
+    <h1>{current['temp']:.1f}°C</h1>
+    <p>Optimal: 18-22°C</p>
+</div>
+""", unsafe_allow_html=True)
 
+# ═══════════════════════════════════════════
+# TREND GRAPHS
+# ═══════════════════════════════════════════
 history = demo.get_history()
 
+st.markdown("<h2>📈 Trends</h2>", unsafe_allow_html=True)
+
+# pH Trend
+st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+fig_ph = go.Figure()
+fig_ph.add_trace(go.Scatter(
+    x=history['time'],
+    y=history['pH'],
+    mode='lines',
+    line=dict(color=PURPLE, width=2.5),
+    fill='tozeroy',
+    fillcolor=f'rgba(107, 33, 168, 0.1)',
+    showlegend=False
+))
+fig_ph.update_layout(
+    height=180,
+    margin=dict(l=10, r=10, t=10, b=10),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    xaxis=dict(showgrid=False, title='', showticklabels=False),
+    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='pH'),
+    font=dict(size=10)
+)
+st.plotly_chart(fig_ph, use_container_width=True, config={'displayModeBar': False})
+st.caption("pH Level - Last 5 Hours")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# EC Trend
+st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+fig_ec = go.Figure()
+fig_ec.add_trace(go.Scatter(
+    x=history['time'],
+    y=history['ec'],
+    mode='lines',
+    line=dict(color=LIGHT_PURPLE, width=2.5),
+    fill='tozeroy',
+    fillcolor=f'rgba(147, 51, 234, 0.1)',
+    showlegend=False
+))
+fig_ec.update_layout(
+    height=180,
+    margin=dict(l=10, r=10, t=10, b=10),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    xaxis=dict(showgrid=False, title='', showticklabels=False),
+    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='EC (mS/cm)'),
+    font=dict(size=10)
+)
+st.plotly_chart(fig_ec, use_container_width=True, config={'displayModeBar': False})
+st.caption("EC Level - Last 5 Hours")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════
+# SYSTEM INFO
+# ═══════════════════════════════════════════
+st.markdown("<h2>ℹ️ System Info</h2>", unsafe_allow_html=True)
+
 col1, col2 = st.columns(2)
-
 with col1:
-    st.subheader("pH Trend")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=history['time'],
-        y=history['pH'],
-        mode='lines',
-        line=dict(color=PURPLE, width=3),
-        showlegend=False
-    ))
-    fig.update_layout(
-        height=250,
-        margin=dict(l=20, r=20, t=20, b=20),
-        plot_bgcolor=WHITE,
-        paper_bgcolor=WHITE
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
+    st.metric("Uptime", f"{demo.step // 60} min")
+    st.metric("Data Points", f"{demo.step}")
 with col2:
-    st.subheader("EC Trend")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=history['time'],
-        y=history['ec'],
-        mode='lines',
-        line=dict(color=LIGHT_PURPLE, width=3),
-        showlegend=False
-    ))
-    fig.update_layout(
-        height=250,
-        margin=dict(l=20, r=20, t=20, b=20),
-        plot_bgcolor=WHITE,
-        paper_bgcolor=WHITE
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    st.metric("Auto Mode", "Active")
+    st.metric("AI Monitor", "Ready")
 
-st.markdown("---")
-st.markdown(f"<p style='text-align:center; color:{PURPLE};'>🌱 Hydroponic Monitor | Demo Version</p>", unsafe_allow_html=True)
+# ═══════════════════════════════════════════
+# FOOTER
+# ═══════════════════════════════════════════
+st.markdown("""
+<div class="app-footer">
+    🌱 HydroVision by SET Certification<br>
+    Smart. Sustainable. Simple.
+</div>
+""", unsafe_allow_html=True)
 
+# ═══════════════════════════════════════════
+# AUTO-REFRESH (every 3 seconds)
+# ═══════════════════════════════════════════
 time.sleep(3)
 st.rerun()
