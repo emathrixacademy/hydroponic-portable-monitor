@@ -39,6 +39,65 @@ st.markdown(f"""
         margin: 0;
         opacity: 0.9;
     }}
+    /* Mobile phone frame */
+    .main {{
+        max-width: 400px;
+        margin: 0 auto;
+        background-color: {WHITE};
+        padding: 1rem;
+        border-radius: 30px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        border: 12px solid #1a1a1a;
+    }}
+    
+    /* Hide Streamlit elements */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
+    .stDeployButton {{visibility: hidden;}}
+    
+    /* Scrollable content */
+    .block-container {{
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-height: 800px;
+        overflow-y: auto;
+    }}
+    
+    /* Custom scrollbar */
+    .block-container::-webkit-scrollbar {{
+        width: 6px;
+    }}
+    .block-container::-webkit-scrollbar-thumb {{
+        background: {PURPLE};
+        border-radius: 10px;
+    }}
+    
+    /* Metric cards */
+    .big-metric {{
+        background: {PURPLE};
+        color: {WHITE};
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        margin: 10px 0;
+        box-shadow: 0 4px 12px rgba(107,33,168,0.3);
+    }}
+    .big-metric h1 {{
+        font-size: 42px;
+        margin: 10px 0;
+        color: {GOLD};
+    }}
+    .big-metric h3 {{
+        font-size: 16px;
+        margin: 0;
+        opacity: 0.9;
+    }}
+    .big-metric p {{
+        font-size: 13px;
+        margin: 5px 0 0 0;
+        opacity: 0.8;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
