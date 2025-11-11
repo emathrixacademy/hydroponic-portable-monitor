@@ -227,7 +227,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-python# AI CAMERA SECTION - FIXED WEBCAM DISPLAY
+# AI CAMERA SECTION - FIXED WEBCAM DISPLAY
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
