@@ -227,130 +227,165 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION - JAVASCRIPT TEACHABLE MACHINE WITH CAPTURE
+# AI CAMERA SECTION - LIVE + CAPTURE + RECOMMENDATIONS
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
 st.components.v1.html("""
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 10px; margin: 0; }
-        #webcam-container { margin: 15px auto; }
-        canvas { border: 3px solid #6B21A8; border-radius: 15px; max-width: 100%; }
-        button { 
-            background: linear-gradient(135deg, #6B21A8 0%, #9333EA 100%);
-            color: white; border: none; padding: 12px 30px; font-size: 16px;
-            font-weight: bold; border-radius: 10px; cursor: pointer; margin: 10px;
-        }
-        button:disabled { opacity: 0.5; }
-        .status { color: #6B21A8; font-weight: bold; margin: 10px; font-size: 14px; }
-        .result { border-radius: 15px; padding: 20px; margin: 15px auto; max-width: 90%; }
-        .actions { text-align: left; background: #f9fafb; padding: 15px; border-radius: 10px; margin: 15px auto; max-width: 90%; }
-        .pred { margin: 8px 0; }
-        .bar-bg { background: #e5e7eb; border-radius: 8px; height: 20px; }
-        .bar { height: 100%; transition: width 0.3s; border-radius: 8px; }
-    </style>
-</head>
-<body>
-    <div class="status" id="status">Loading...</div>
+<div style="text-align: center; padding: 20px;">
     <div id="webcam-container"></div>
-    <button id="capture-btn" onclick="captureImage()" style="display:none;">📸 Capture & Analyze</button>
-    <div id="result"></div>
+    <button id="capture-btn" style="
+        background: linear-gradient(135deg, #6B21A8 0%, #9333EA 100%);
+        color: white; border: none; padding: 15px 40px; font-size: 18px;
+        font-weight: bold; border-radius: 10px; cursor: pointer; margin: 20px 0;
+        box-shadow: 0 4px 12px rgba(107,33,168,0.3);">
+        📸 Capture & Analyze
+    </button>
+    <div id="live-container" style="margin-top: 20px;"></div>
+    <div id="result-container" style="margin-top: 20px;"></div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
-    
-    <script>
-        const URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/";
-        let model, webcam, isPredicting = false;
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-        const info = {
-            'full grown': { emoji: '🌟', color: '#3b82f6', title: 'Full Grown - Ready!', 
-                actions: ['✂️ Harvest now', '🌅 Morning best', '❄️ Store 4°C', '⏰ Use in 7 days'] },
-            'matured': { emoji: '✅', color: '#22c55e', title: 'Matured - Healthy',
-                actions: ['✓ pH: 5.8±0.15', '✓ EC: 1.2±0.08', '📅 3-5 days', '👀 Monitor'] },
-            'sprout': { emoji: '🌱', color: '#10b981', title: 'Sprout - Early',
-                actions: ['💧 EC: 0.8-1.0', '✓ pH: 5.8', '☀️ 12-16h', '📅 21-28 days'] },
-            'withered': { emoji: '🚨', color: '#ef4444', title: 'Withered - Alert',
-                actions: ['🔴 18-22°C', '🌡️ Check pH', '💨 Airflow', '🔬 Remove'] }
-        };
+<script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/";
+    let model, webcam, maxPredictions, isAnalyzing = false;
 
-        async function init() {
-            try {
-                document.getElementById('status').innerHTML = '🔄 Loading model...';
-                model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-                
-                document.getElementById('status').innerHTML = '📷 Starting camera...';
-                webcam = new tmImage.Webcam(320, 320, false);
-                await webcam.setup({ facingMode: "environment" });
-                await webcam.play();
-                
-                document.getElementById("webcam-container").appendChild(webcam.canvas);
-                document.getElementById('capture-btn').style.display = 'inline-block';
-                document.getElementById('status').innerHTML = '✅ Ready! Point at lettuce and capture';
-                
-            } catch (e) {
-                document.getElementById('status').innerHTML = '❌ Error: ' + e.message;
-            }
+    const recommendations = {
+        'full grown': {
+            emoji: '🌟', color: '#3b82f6', title: 'Full Grown - Ready for Harvest!',
+            actions: ['✂️ Harvest immediately', '🌅 Best: morning', '❄️ Store at 4°C', '⏰ Use within 7 days']
+        },
+        'matured': {
+            emoji: '✅', color: '#22c55e', title: 'Matured - Healthy & Growing',
+            actions: ['✓ pH: 5.8±0.15', '✓ EC: 1.2±0.08', '📅 3-5 days', '👀 Monitor daily']
+        },
+        'sprout': {
+            emoji: '🌱', color: '#10b981', title: 'Sprout - Early Growth',
+            actions: ['💧 EC: 0.8-1.0', '✓ pH: 5.8', '☀️ 12-16h light', '📅 21-28 days']
+        },
+        'withered': {
+            emoji: '🚨', color: '#ef4444', title: 'Withered - Needs Attention!',
+            actions: ['🔴 Temp: 18-22°C', '🌡️ Check pH', '💨 Airflow', '🔬 Remove if diseased']
         }
+    };
 
-        async function captureImage() {
-            if (isPredicting) return;
-            isPredicting = true;
-            
-            const btn = document.getElementById('capture-btn');
-            btn.innerHTML = '🔄 Analyzing...';
-            btn.disabled = true;
-            
-            try {
-                const predictions = await model.predict(webcam.canvas);
-                predictions.sort((a, b) => b.probability - a.probability);
-                
-                const top = predictions[0];
-                const name = top.className.toLowerCase();
-                const conf = (top.probability * 100).toFixed(1);
-                const rec = info[name] || info['matured'];
-                
-                let html = '<div class="result" style="background: ' + rec.color + '20; border: 3px solid ' + rec.color + ';">' +
-                    '<h2 style="margin: 0; color: ' + rec.color + ';">' + rec.emoji + ' ' + rec.title + '</h2>' +
-                    '<h1 style="margin: 10px 0; color: #6B21A8; font-size: 44px;">' + conf + '%</h1>' +
-                    '<p style="color: #6b7280;">AI Confidence</p></div>' +
-                    '<div class="actions"><h3 style="color: #6B21A8; margin-top: 0;">📋 Actions:</h3>';
-                
-                rec.actions.forEach((a, i) => {
-                    html += '<p style="margin: 8px 0;"><strong>' + (i+1) + '.</strong> ' + a + '</p>';
-                });
-                
-                html += '</div><div class="actions"><h3 style="color: #6B21A8; margin-top: 0;">🔍 All:</h3>';
-                
-                predictions.forEach((p, i) => {
-                    const prob = (p.probability * 100).toFixed(1);
-                    const barColor = i === 0 ? rec.color : '#d1d5db';
-                    html += '<div class="pred"><div style="display: flex; justify-content: space-between; margin-bottom: 3px;">' +
-                        '<span style="font-weight: 600; font-size: 13px;">' + p.className + '</span>' +
-                        '<span style="font-weight: bold; color: ' + rec.color + '; font-size: 13px;">' + prob + '%</span></div>' +
-                        '<div class="bar-bg"><div class="bar" style="background: ' + barColor + '; width: ' + prob + '%;"></div></div></div>';
-                });
-                
-                html += '</div>';
-                document.getElementById('result').innerHTML = html;
-                
-            } catch (e) {
-                document.getElementById('result').innerHTML = '<p style="color: red;">❌ Error: ' + e.message + '</p>';
-            }
-            
-            btn.innerHTML = '📸 Capture Again';
-            btn.disabled = false;
-            isPredicting = false;
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        webcam = new tmImage.Webcam(300, 300, true);
+        await webcam.setup({ facingMode: "environment" });
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        
+        const liveContainer = document.getElementById("live-container");
+        for (let i = 0; i < maxPredictions; i++) {
+            liveContainer.appendChild(document.createElement("div"));
         }
         
-        init();
-    </script>
-</body>
-</html>
-""", height=1100)
+        document.getElementById("capture-btn").addEventListener("click", captureAndAnalyze);
+    }
+
+    async function loop() {
+        webcam.update();
+        await showLivePredictions();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function showLivePredictions() {
+        const prediction = await model.predict(webcam.canvas);
+        prediction.sort((a, b) => b.probability - a.probability);
+        
+        const liveContainer = document.getElementById("live-container");
+        
+        for (let i = 0; i < maxPredictions; i++) {
+            const className = prediction[i].className;
+            const probability = (prediction[i].probability * 100).toFixed(1);
+            
+            let color = '#3b82f6';
+            if (className.toLowerCase().includes('sprout')) color = '#10b981';
+            if (className.toLowerCase().includes('matured')) color = '#22c55e';
+            if (className.toLowerCase().includes('withered')) color = '#ef4444';
+            
+            liveContainer.childNodes[i].innerHTML = 
+                '<div style="margin: 10px 0; text-align: left;">' +
+                '<div style="font-weight: 600; margin-bottom: 5px; color: #1f2937;">' +
+                (i === 0 ? '🎯 ' : '') + className + '</div>' +
+                '<div style="background: #e5e7eb; border-radius: 10px; height: 30px; overflow: hidden;">' +
+                '<div style="background: ' + color + '; width: ' + probability + '%; height: 100%; ' +
+                'display: flex; align-items: center; justify-content: center; color: white; ' +
+                'font-weight: bold; transition: width 0.3s;">' + probability + '%</div></div></div>';
+        }
+    }
+
+    async function captureAndAnalyze() {
+        if (isAnalyzing) return;
+        isAnalyzing = true;
+        
+        const btn = document.getElementById("capture-btn");
+        btn.innerHTML = "🔄 Analyzing...";
+        btn.disabled = true;
+        
+        const prediction = await model.predict(webcam.canvas);
+        prediction.sort((a, b) => b.probability - a.probability);
+        
+        const topResult = prediction[0];
+        const className = topResult.className.toLowerCase();
+        const confidence = (topResult.probability * 100).toFixed(1);
+        const rec = recommendations[className] || recommendations['matured'];
+        
+        let html = '<div style="background: ' + rec.color + '20; border: 3px solid ' + rec.color + '; ' +
+            'border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">' +
+            '<h2 style="margin: 0; color: ' + rec.color + '; font-size: 20px;">' +
+            rec.emoji + ' ' + rec.title + '</h2>' +
+            '<h1 style="margin: 10px 0; color: #6B21A8; font-size: 48px;">' + confidence + '%</h1>' +
+            '<p style="margin: 0; color: #6b7280;">AI Confidence</p></div>' +
+            '<div style="text-align: left; margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: 10px;">' +
+            '<h3 style="color: #6B21A8; margin-top: 0;">📋 What to Do Next:</h3>';
+        
+        rec.actions.forEach((action, i) => {
+            html += '<p style="margin: 10px 0; color: #1f2937;"><strong>' + (i+1) + '.</strong> ' + action + '</p>';
+        });
+        
+        html += '</div><div style="text-align: left; margin: 20px 0;">' +
+            '<h3 style="color: #6B21A8;">🔍 All Predictions:</h3>';
+        
+        for (let i = 0; i < prediction.length; i++) {
+            const name = prediction[i].className;
+            const prob = (prediction[i].probability * 100).toFixed(1);
+            const barColor = i === 0 ? rec.color : '#d1d5db';
+            
+            html += '<div style="margin: 10px 0;">' +
+                '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
+                '<span style="font-weight: 600; color: #1f2937;">' + name + '</span>' +
+                '<span style="font-weight: bold; color: ' + rec.color + ';">' + prob + '%</span></div>' +
+                '<div style="background: #e5e7eb; border-radius: 10px; height: 25px; overflow: hidden;">' +
+                '<div style="background: ' + barColor + '; width: ' + prob + '%; height: 100%; ' +
+                'transition: width 0.5s ease;"></div></div></div>';
+        }
+        html += '</div>';
+        
+        document.getElementById("result-container").innerHTML = html;
+        
+        setTimeout(() => {
+            btn.innerHTML = "📸 Capture Again";
+            btn.disabled = false;
+            isAnalyzing = false;
+        }, 1000);
+    }
+
+    init();
+</script>
+""", height=1200)
+
+st.markdown("---")
+st.success("✅ **Live AI Active** - Watch predictions update in real-time, then capture for full analysis!")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
