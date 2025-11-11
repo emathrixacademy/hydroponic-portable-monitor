@@ -1,7 +1,7 @@
 """
 🌱 HydroVision - Mobile Demo
 Designed for presentation/pitch demo
-Simple, clean, mobile-first interface
+Simple, clean, mobile-first interface with AI Camera
 """
 
 import streamlit as st
@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime, timedelta
 import time
+import random
 
 st.set_page_config(
     page_title="HydroVision",
@@ -169,6 +170,12 @@ st.markdown(f"""
         font-size: 11px;
         border-top: 1px solid #e5e7eb;
     }}
+    
+    /* Camera button styling */
+    .stCamera {{
+        border-radius: 15px;
+        overflow: hidden;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -261,8 +268,134 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════
+# AI PLANT HEALTH CAMERA
+# ═══════════════════════════════════════════
+st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
+st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+
+# Camera input - opens laptop/phone camera
+picture = st.camera_input("📸 Capture your lettuce plant", label_visibility="visible")
+
+if picture:
+    # Show captured image
+    st.image(picture, use_column_width=True, caption="Captured Image")
+    
+    # Simulate AI analysis
+    with st.spinner("🤖 Analyzing plant health with AI..."):
+        time.sleep(2)  # Simulate processing time
+        
+        # AI Results (simulated - 4 possible outcomes)
+        ai_results = [
+            {
+                "status": "✅ Healthy",
+                "confidence": 94.2,
+                "color": "#22c55e",
+                "bg_color": "rgba(34, 197, 94, 0.1)",
+                "message": "Your lettuce is healthy! Continue current care routine.",
+                "actions": [
+                    "✓ Maintain pH at 5.8 ± 0.15",
+                    "✓ Keep EC at 1.2 ± 0.08 mS/cm",
+                    "✓ Monitor daily for any changes",
+                    "✓ Harvest in 5-7 days if full-grown"
+                ]
+            },
+            {
+                "status": "⚠️ Nutrient Deficiency",
+                "confidence": 88.5,
+                "color": "#f59e0b",
+                "bg_color": "rgba(245, 158, 11, 0.1)",
+                "message": "Nutrient deficiency detected. Adjust feeding schedule.",
+                "actions": [
+                    "↑ Increase EC to 1.3-1.4 mS/cm",
+                    "✓ Verify pH is at 5.8",
+                    "💧 Add balanced nutrient solution",
+                    "📅 Re-check in 48 hours"
+                ]
+            },
+            {
+                "status": "🚨 Disease/Stress",
+                "confidence": 85.3,
+                "color": "#ef4444",
+                "bg_color": "rgba(239, 68, 68, 0.1)",
+                "message": "Possible disease or stress detected! Take action immediately.",
+                "actions": [
+                    "🔴 Isolate affected plants now",
+                    "🌡️ Check water temp (18-22°C)",
+                    "💨 Improve air circulation",
+                    "🔬 Consider treatment or removal"
+                ]
+            },
+            {
+                "status": "🌟 Ready for Harvest",
+                "confidence": 91.8,
+                "color": "#3b82f6",
+                "bg_color": "rgba(59, 130, 246, 0.1)",
+                "message": "Plant has reached optimal size! Ready to harvest.",
+                "actions": [
+                    "✂️ Harvest when leaves are crisp",
+                    "🌅 Best time: morning hours",
+                    "❄️ Store at 4°C with high humidity",
+                    "⏰ Use within 7 days for best quality"
+                ]
+            }
+        ]
+        
+        # Pick random result for demo
+        result = random.choice(ai_results)
+    
+    # Show AI Result Card
+    st.markdown(f"""
+    <div style="background: {result['bg_color']}; 
+                border: 2px solid {result['color']};
+                border-radius: 15px; 
+                padding: 20px; 
+                margin: 15px 0;
+                text-align: center;">
+        <h2 style="margin: 0; font-size: 20px; color: {result['color']};">
+            {result['status']}
+        </h2>
+        <h1 style="margin: 10px 0; font-size: 48px; color: {PURPLE}; font-weight: bold;">
+            {result['confidence']:.1f}%
+        </h1>
+        <p style="margin: 0; font-size: 13px; color: #6b7280;">
+            AI Confidence Level
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Show diagnosis message
+    st.markdown(f"""
+    <div style="background: {result['bg_color']}; 
+                padding: 15px; 
+                border-radius: 10px;
+                border-left: 4px solid {result['color']};
+                margin: 10px 0;">
+        <p style="margin: 0; color: #1f2937; font-weight: 500;">
+            {result['message']}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Show recommended actions
+    st.markdown("**📋 Recommended Actions:**")
+    for action in result['actions']:
+        st.markdown(f"• {action}")
+    
+    # Save button
+    if st.button("💾 Save Analysis Report", use_container_width=True, type="primary"):
+        st.success("✅ Analysis saved successfully!")
+        st.balloons()
+        time.sleep(1)
+
+else:
+    st.info("👆 **Tap the camera button above** to scan your lettuce plant and get instant AI health analysis!")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════
 # TREND GRAPHS
 # ═══════════════════════════════════════════
+st.markdown("---")
 history = demo.get_history()
 
 st.markdown("<h2>📈 Trends</h2>", unsafe_allow_html=True)
@@ -324,18 +457,18 @@ st.markdown("<h2>ℹ️ System Info</h2>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("Uptime", f"{demo.step // 60} min")
-    st.metric("Data Points", f"{demo.step}")
+    st.metric("⏱️ Uptime", f"{demo.step // 60} min")
+    st.metric("📊 Data Points", f"{demo.step}")
 with col2:
-    st.metric("Auto Mode", "Active")
-    st.metric("AI Monitor", "Ready")
+    st.metric("🤖 Auto Mode", "Active")
+    st.metric("🔬 AI Monitor", "Ready")
 
 # ═══════════════════════════════════════════
 # FOOTER
 # ═══════════════════════════════════════════
 st.markdown("""
 <div class="app-footer">
-    🌱 HydroVision by SET Certification<br>
+    🌱 <strong>HydroVision</strong> by SET Certification<br>
     Smart. Sustainable. Simple.
 </div>
 """, unsafe_allow_html=True)
