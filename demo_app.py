@@ -1,7 +1,5 @@
 """
 🌱 Hydroponic Monitor - Simple Demo
-Purple, white, and gold theme
-Straightforward design for easy understanding
 """
 
 import streamlit as st
@@ -11,29 +9,18 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 
-st.set_page_config(
-    page_title="Hydroponic Monitor",
-    page_icon="🌱",
-    layout="wide"
-)
+st.set_page_config(page_title="Hydroponic Monitor", page_icon="🌱", layout="wide")
 
-# ═══════════════════════════════════════════
-# SIMPLE COLORS - Purple, White, Gold
-# ═══════════════════════════════════════════
 PURPLE = "#6B21A8"
 LIGHT_PURPLE = "#9333EA"
 GOLD = "#FCD34D"
 WHITE = "#FFFFFF"
 
-# ═══════════════════════════════════════════
-# SIMPLE STYLING
-# ═══════════════════════════════════════════
 st.markdown(f"""
 <style>
     .main {{background-color: {WHITE}; padding: 2rem;}}
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}
-    
     .big-metric {{
         background: {PURPLE};
         color: {WHITE};
@@ -55,23 +42,17 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════
-# SIMPLE DATA GENERATOR
-# ═══════════════════════════════════════════
 class SimpleDemo:
     def __init__(self):
         self.ph = 5.80
         self.ec = 1.20
         self.temp = 20.5
-        self.step = 0
     
     def get_data(self):
-        self.step += 1
         return {
             'pH': round(self.ph + np.random.normal(0, 0.02), 2),
             'ec': round(self.ec + np.random.normal(0, 0.01), 2),
-            'temp': round(self.temp + np.random.normal(0, 0.2), 1),
-            'time': datetime.now()
+            'temp': round(self.temp + np.random.normal(0, 0.2), 1)
         }
     
     def get_history(self):
@@ -90,16 +71,10 @@ if 'demo' not in st.session_state:
 
 demo = st.session_state.demo
 
-# ═══════════════════════════════════════════
-# HEADER
-# ═══════════════════════════════════════════
 st.markdown(f"<h1 style='color:{PURPLE}; text-align:center;'>🌱 Hydroponic Monitoring System</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align:center; color:{LIGHT_PURPLE};'>Real-time monitoring for optimal plant growth</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ═══════════════════════════════════════════
-# MAIN METRICS - BIG AND SIMPLE
-# ═══════════════════════════════════════════
 data = demo.get_data()
 
 col1, col2, col3 = st.columns(3)
@@ -133,9 +108,6 @@ with col3:
 
 st.markdown("---")
 
-# ═══════════════════════════════════════════
-# SIMPLE GRAPHS - ONE LINE EACH
-# ═══════════════════════════════════════════
 history = demo.get_history()
 
 col1, col2 = st.columns(2)
@@ -176,12 +148,8 @@ with col2:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ═══════════════════════════════════════════
-# FOOTER
-# ═══════════════════════════════════════════
 st.markdown("---")
-st.markdown(f"<p style='text-align:center; color:{PURPLE};'>🌱 Hydroponic Portable Monitor | Demo Version</p>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align:center; color:{PURPLE};'>🌱 Hydroponic Monitor | Demo Version</p>", unsafe_allow_html=True)
 
-# Auto-refresh every 3 seconds
 time.sleep(3)
 st.rerun()
