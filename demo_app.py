@@ -227,8 +227,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-Replace the camera section with this mobile-friendly version:
-python# AI CAMERA SECTION - MOBILE OPTIMIZED
+# AI CAMERA SECTION - MOBILE OPTIMIZED
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
