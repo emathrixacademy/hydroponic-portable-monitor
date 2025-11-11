@@ -507,5 +507,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-time.sleep(3)
-st.rerun()
+# Auto-refresh only when not analyzing
+if 'picture' not in locals() or picture is None:
+    time.sleep(3)
+    st.rerun()
