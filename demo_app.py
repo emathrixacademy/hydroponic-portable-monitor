@@ -227,14 +227,14 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# AI CAMERA SECTION - WITH CAPTURE & RECOMMENDATIONS
+python# AI CAMERA SECTION - FIXED WEBCAM DISPLAY
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-# Live webcam with capture button
 st.components.v1.html("""
 <div style="text-align: center; padding: 20px;">
-    <div id="webcam-container"></div>
+    <div id="status" style="margin: 10px 0; color: #6B21A8; font-weight: bold;"></div>
+    <div id="webcam-container" style="margin: 20px auto; max-width: 350px;"></div>
     <button id="capture-btn" style="
         background: linear-gradient(135deg, #6B21A8 0%, #9333EA 100%);
         color: white;
@@ -246,9 +246,9 @@ st.components.v1.html("""
         cursor: pointer;
         margin: 20px 0;
         box-shadow: 0 4px 12px rgba(107,33,168,0.3);
+        display: none;
     ">📸 Capture & Analyze</button>
     <div id="result-container" style="margin-top: 20px;"></div>
-    <div id="label-container" style="margin-top: 20px;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
@@ -256,10 +256,8 @@ st.components.v1.html("""
 
 <script type="text/javascript">
     const URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/";
-    let model, webcam, labelContainer, maxPredictions;
-    let isAnalyzing = false;
+    let model, webcam, isAnalyzing = false;
 
-    // Recommendations for each class
     const recommendations = {
         'full grown': {
             emoji: '🌟',
@@ -308,101 +306,128 @@ st.components.v1.html("""
     };
 
     async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        // Try to use back camera on mobile
-        const constraints = {
-            video: {
-                facingMode: { ideal: "environment" },  // Use back camera on mobile
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            }
-        };
-
         try {
-            webcam = new tmImage.Webcam(300, 300, false);
-            await webcam.setup(constraints);
+            document.getElementById("status").innerHTML = "🔄 Loading AI model...";
+            
+            // Load model
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            
+            document.getElementById("status").innerHTML = "📷 Starting camera...";
+            
+            // Setup webcam - try mobile back camera first
+            const flip = false;
+            webcam = new tmImage.Webcam(320, 320, flip);
+            
+            await webcam.setup({ 
+                facingMode: "environment"  // Use back camera on mobile
+            });
+            
             await webcam.play();
             
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
-            labelContainer = document.getElementById("label-container");
+            // Show webcam
+            const webcamContainer = document.getElementById("webcam-container");
+            webcamContainer.innerHTML = "";
+            webcamContainer.appendChild(webcam.canvas);
             
-            // Add capture button listener
+            // Show capture button
+            document.getElementById("capture-btn").style.display = "inline-block";
             document.getElementById("capture-btn").addEventListener("click", captureAndAnalyze);
             
+            document.getElementById("status").innerHTML = "✅ Camera ready! Point at your lettuce and click capture.";
+            
         } catch (error) {
-            document.getElementById("webcam-container").innerHTML = 
-                '<p style="color: red;">❌ Camera access denied or not available. Please allow camera permission.</p>';
+            console.error("Error:", error);
+            document.getElementById("status").innerHTML = "❌ Camera Error";
+            document.getElementById("webcam-container").innerHTML = `
+                <div style="padding: 20px; background: #fee; border: 2px solid #f00; border-radius: 10px; color: #c00;">
+                    <h3>Camera Access Issue</h3>
+                    <p><strong>On Phone:</strong> Allow camera permission in browser settings</p>
+                    <p><strong>On Laptop:</strong> 
+                        <br>• Check if another app is using camera
+                        <br>• Allow camera in browser (check address bar)
+                        <br>• Try Chrome browser for best results
+                    </p>
+                    <button onclick="location.reload()" style="
+                        background: #6B21A8; color: white; padding: 10px 20px; 
+                        border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                        🔄 Try Again
+                    </button>
+                </div>
+            `;
         }
     }
 
     async function captureAndAnalyze() {
-        if (isAnalyzing) return;
+        if (isAnalyzing || !webcam) return;
         isAnalyzing = true;
         
         const btn = document.getElementById("capture-btn");
         btn.innerHTML = "🔄 Analyzing...";
         btn.disabled = true;
         
-        // Get prediction
-        const prediction = await model.predict(webcam.canvas);
-        prediction.sort((a, b) => b.probability - a.probability);
-        
-        const topResult = prediction[0];
-        const className = topResult.className.toLowerCase();
-        const confidence = (topResult.probability * 100).toFixed(1);
-        
-        // Get recommendations
-        const rec = recommendations[className] || recommendations['matured'];
-        
-        // Display result
-        let resultHTML = `
-            <div style="background: ${rec.color}20; border: 3px solid ${rec.color}; 
-                        border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
-                <h2 style="margin: 0; color: ${rec.color}; font-size: 20px;">
-                    ${rec.emoji} ${rec.title}
-                </h2>
-                <h1 style="margin: 10px 0; color: #6B21A8; font-size: 48px;">${confidence}%</h1>
-                <p style="margin: 0; color: #6b7280;">AI Confidence</p>
-            </div>
+        try {
+            // Get prediction
+            const prediction = await model.predict(webcam.canvas);
+            prediction.sort((a, b) => b.probability - a.probability);
             
-            <div style="text-align: left; margin: 20px 0; padding: 20px; 
-                        background: #f9fafb; border-radius: 10px;">
-                <h3 style="color: #6B21A8; margin-top: 0;">📋 What to Do Next:</h3>
-                ${rec.actions.map((action, i) => 
-                    `<p style="margin: 10px 0; color: #1f2937;"><strong>${i+1}.</strong> ${action}</p>`
-                ).join('')}
-            </div>
-        `;
-        
-        // Show all predictions
-        resultHTML += '<div style="text-align: left; margin: 20px 0;"><h3 style="color: #6B21A8;">🔍 All Predictions:</h3>';
-        
-        for (let i = 0; i < prediction.length; i++) {
-            const name = prediction[i].className;
-            const prob = (prediction[i].probability * 100).toFixed(1);
-            const barColor = i === 0 ? rec.color : '#d1d5db';
+            const topResult = prediction[0];
+            const className = topResult.className.toLowerCase();
+            const confidence = (topResult.probability * 100).toFixed(1);
             
-            resultHTML += `
-                <div style="margin: 10px 0;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-weight: 600; color: #1f2937;">${name}</span>
-                        <span style="font-weight: bold; color: ${rec.color};">${prob}%</span>
-                    </div>
-                    <div style="background: #e5e7eb; border-radius: 10px; height: 25px; overflow: hidden;">
-                        <div style="background: ${barColor}; width: ${prob}%; height: 100%; 
-                                    transition: width 0.5s ease;"></div>
-                    </div>
+            // Get recommendations
+            const rec = recommendations[className] || recommendations['matured'];
+            
+            // Display result
+            let resultHTML = `
+                <div style="background: ${rec.color}20; border: 3px solid ${rec.color}; 
+                            border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
+                    <h2 style="margin: 0; color: ${rec.color}; font-size: 20px;">
+                        ${rec.emoji} ${rec.title}
+                    </h2>
+                    <h1 style="margin: 10px 0; color: #6B21A8; font-size: 48px;">${confidence}%</h1>
+                    <p style="margin: 0; color: #6b7280;">AI Confidence</p>
                 </div>
+                
+                <div style="text-align: left; margin: 20px 0; padding: 20px; 
+                            background: #f9fafb; border-radius: 10px;">
+                    <h3 style="color: #6B21A8; margin-top: 0;">📋 What to Do Next:</h3>
+                    ${rec.actions.map((action, i) => 
+                        `<p style="margin: 10px 0; color: #1f2937;"><strong>${i+1}.</strong> ${action}</p>`
+                    ).join('')}
+                </div>
+                
+                <div style="text-align: left; margin: 20px 0;">
+                    <h3 style="color: #6B21A8;">🔍 All Predictions:</h3>
             `;
+            
+            for (let i = 0; i < prediction.length; i++) {
+                const name = prediction[i].className;
+                const prob = (prediction[i].probability * 100).toFixed(1);
+                const barColor = i === 0 ? rec.color : '#d1d5db';
+                
+                resultHTML += `
+                    <div style="margin: 10px 0;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-weight: 600; color: #1f2937;">${name}</span>
+                            <span style="font-weight: bold; color: ${rec.color};">${prob}%</span>
+                        </div>
+                        <div style="background: #e5e7eb; border-radius: 10px; height: 25px; overflow: hidden;">
+                            <div style="background: ${barColor}; width: ${prob}%; height: 100%; 
+                                        transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            resultHTML += '</div>';
+            
+            document.getElementById("result-container").innerHTML = resultHTML;
+            
+        } catch (error) {
+            document.getElementById("result-container").innerHTML = 
+                '<p style="color: red;">❌ Analysis failed. Please try again.</p>';
         }
-        resultHTML += '</div>';
-        
-        document.getElementById("result-container").innerHTML = resultHTML;
         
         // Reset button
         setTimeout(() => {
@@ -412,10 +437,10 @@ st.components.v1.html("""
         }, 1000);
     }
 
-    // Auto-start
+    // Start on load
     init();
 </script>
-""", height=1000)
+""", height=1100)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
