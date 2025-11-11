@@ -1,23 +1,6 @@
 [server]
-   enableCORS = false
-   enableXsrfProtection = false
-```
+enableCORS = false
+enableXsrfProtection = false
 
-5. **Commit the file**
-
----
-
-### **ALSO - Create `runtime.txt`:**
-
-This tells Streamlit Cloud which Python version to use.
-
-1. **In your repo, click "Add file" → "Create new file"**
-
-2. **Filename:**
-```
-   runtime.txt
-```
-
-3. **Content (just one line):**
-```
-   python-3.11
+[browser]
+gatherUsageStats = false
