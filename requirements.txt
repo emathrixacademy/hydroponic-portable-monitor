@@ -4,3 +4,4 @@ plotly>=5.17.0
 numpy>=1.26.0
 pillow>=10.0.0
 requests>=2.31.0
+tensorflow>=2.15.0
