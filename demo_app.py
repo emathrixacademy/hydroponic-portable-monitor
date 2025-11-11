@@ -30,37 +30,36 @@ st.markdown(f"""
     header {{visibility: hidden;}}
     .stDeployButton {{visibility: hidden;}}
     
+    /* Remove default Streamlit padding */
     .main {{
-        max-width: 380px;
-        margin: 20px auto;
-        background: {WHITE};
         padding: 0;
-        border-radius: 35px;
-        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
-        border: 14px solid {DARK};
+        max-width: 100%;
+    }}
+    
+    /* Phone frame container */
+    .phone-frame {{
         position: relative;
+        max-width: 400px;
+        margin: 50px auto;
+        background-image: url('https://raw.githubusercontent.com/emathrixacademy/hydroponic-portable-monitor/main/assets/phone-frame.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        padding: 70px 25px 70px 25px;  /* Adjust based on your phone frame */
+        min-height: 800px;
     }}
     
-    .main::before {{
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 150px;
-        height: 25px;
-        background: {DARK};
-        border-radius: 0 0 15px 15px;
-        z-index: 1000;
-    }}
-    
+    /* Content inside phone */
     .block-container {{
         padding: 35px 20px 20px 20px;
         max-height: 740px;
         overflow-y: auto;
         overflow-x: hidden;
+        background: {WHITE};
+        border-radius: 35px;
     }}
     
+    /* Custom scrollbar */
     .block-container::-webkit-scrollbar {{
         width: 4px;
     }}
@@ -72,6 +71,7 @@ st.markdown(f"""
         border-radius: 10px;
     }}
     
+    /* Rest of your existing styles... */
     .app-header {{
         text-align: center;
         margin-bottom: 20px;
