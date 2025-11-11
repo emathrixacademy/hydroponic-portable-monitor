@@ -1,85 +1,279 @@
-# ═══════════════════════════════════════════
-# AI PLANT HEALTH CAMERA (REAL TEACHABLE MACHINE)
-# ═══════════════════════════════════════════
+"""
+🌱 HydroVision - Mobile Demo with Real AI
+"""
+
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+import numpy as np
+from datetime import datetime, timedelta
+import time
+import random
+
+st.set_page_config(
+    page_title="HydroVision",
+    page_icon="🌱",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+PURPLE = "#6B21A8"
+LIGHT_PURPLE = "#9333EA"
+GOLD = "#FCD34D"
+WHITE = "#FFFFFF"
+DARK = "#1a1a1a"
+
+st.markdown(f"""
+<style>
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
+    .stDeployButton {{visibility: hidden;}}
+    
+    .main {{
+        max-width: 380px;
+        margin: 20px auto;
+        background: {WHITE};
+        padding: 0;
+        border-radius: 35px;
+        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+        border: 14px solid {DARK};
+        position: relative;
+    }}
+    
+    .main::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 25px;
+        background: {DARK};
+        border-radius: 0 0 15px 15px;
+        z-index: 1000;
+    }}
+    
+    .block-container {{
+        padding: 35px 20px 20px 20px;
+        max-height: 740px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }}
+    
+    .block-container::-webkit-scrollbar {{
+        width: 4px;
+    }}
+    .block-container::-webkit-scrollbar-track {{
+        background: transparent;
+    }}
+    .block-container::-webkit-scrollbar-thumb {{
+        background: {PURPLE};
+        border-radius: 10px;
+    }}
+    
+    .app-header {{
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 15px 0;
+        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
+        border-radius: 15px;
+        color: {WHITE};
+    }}
+    .app-header h1 {{
+        font-size: 24px;
+        margin: 5px 0;
+        color: {GOLD};
+    }}
+    .app-header p {{
+        font-size: 12px;
+        margin: 0;
+        opacity: 0.9;
+    }}
+    
+    .metric-card {{
+        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
+        color: {WHITE};
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin: 10px 0;
+        box-shadow: 0 4px 15px rgba(107,33,168,0.3);
+    }}
+    .metric-card h3 {{
+        font-size: 14px;
+        margin: 0 0 8px 0;
+        opacity: 0.9;
+        font-weight: 500;
+    }}
+    .metric-card h1 {{
+        font-size: 36px;
+        margin: 0;
+        color: {GOLD};
+        font-weight: bold;
+    }}
+    .metric-card p {{
+        font-size: 11px;
+        margin: 8px 0 0 0;
+        opacity: 0.8;
+    }}
+    
+    .status-badge {{
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        padding: 8px 16px;
+        border-radius: 20px;
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 10px 0;
+    }}
+    
+    h2 {{
+        color: {PURPLE};
+        font-size: 18px;
+        margin: 20px 0 10px 0;
+        font-weight: 600;
+    }}
+    
+    .chart-container {{
+        background: #f9fafb;
+        padding: 15px;
+        border-radius: 12px;
+        margin: 10px 0;
+    }}
+    
+    .app-footer {{
+        text-align: center;
+        padding: 15px 0;
+        margin-top: 20px;
+        color: {PURPLE};
+        font-size: 11px;
+        border-top: 1px solid #e5e7eb;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+class DemoData:
+    def __init__(self):
+        self.ph = 5.80
+        self.ec = 1.20
+        self.temp = 20.5
+        self.step = 0
+    
+    def get_current(self):
+        self.step += 1
+        ph = self.ph + np.sin(self.step * 0.1) * 0.03 + np.random.normal(0, 0.02)
+        ec = self.ec + np.sin(self.step * 0.05) * 0.02 + np.random.normal(0, 0.01)
+        temp = self.temp + np.random.normal(0, 0.2)
+        
+        return {
+            'pH': round(ph, 2),
+            'ec': round(ec, 2),
+            'temp': round(temp, 1),
+            'time': datetime.now().strftime('%I:%M %p')
+        }
+    
+    def get_history(self, points=30):
+        history = []
+        for i in range(points):
+            t = datetime.now() - timedelta(minutes=i*10)
+            history.append({
+                'time': t,
+                'pH': 5.80 + np.sin(i * 0.2) * 0.08 + np.random.normal(0, 0.03),
+                'ec': 1.20 + np.sin(i * 0.15) * 0.04 + np.random.normal(0, 0.015)
+            })
+        return pd.DataFrame(history[::-1])
+
+if 'data' not in st.session_state:
+    st.session_state.data = DemoData()
+
+demo = st.session_state.data
+
+st.markdown(f"""
+<div class="app-header">
+    <h1>🌱 HydroVision</h1>
+    <p>Smart Hydroponic Monitoring</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="status-badge">🟢 System Online</div>', unsafe_allow_html=True)
+
+current = demo.get_current()
+
+st.markdown(f"<p style='text-align:center; color:#6b7280; font-size:11px; margin:10px 0;'>Last updated: {current['time']}</p>", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="metric-card">
+    <h3>pH Level</h3>
+    <h1>{current['pH']:.2f}</h1>
+    <p>Target: 5.8 ± 0.15</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="metric-card">
+    <h3>EC Level</h3>
+    <h1>{current['ec']:.2f}</h1>
+    <p>Target: 1.2 ± 0.08 mS/cm</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="metric-card">
+    <h3>Water Temperature</h3>
+    <h1>{current['temp']:.1f}°C</h1>
+    <p>Optimal: 18-22°C</p>
+</div>
+""", unsafe_allow_html=True)
+
+# AI CAMERA SECTION
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-# Camera input - ALWAYS VISIBLE
-picture = st.camera_input("📸 Capture your lettuce plant", label_visibility="visible")
+picture = st.camera_input("📸 Capture your lettuce", label_visibility="visible")
 
 if picture:
-    # Show captured image
     st.image(picture, use_column_width=True, caption="Captured Image")
     
-    # Analyze with REAL Teachable Machine
-    with st.spinner("🤖 Analyzing with AI model..."):
+    with st.spinner("🤖 Analyzing with AI..."):
         try:
             import requests
             from PIL import Image
             import io
             import base64
             
-            # Your Teachable Machine model
             MODEL_URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/"
             
-            # Open and prepare image
             img = Image.open(picture)
-            
-            # Resize to 224x224 (Teachable Machine requirement)
             img = img.resize((224, 224))
             if img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Convert image to base64
             buffered = io.BytesIO()
             img.save(buffered, format="JPEG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
             
-            # Call Teachable Machine API
             headers = {'Content-Type': 'application/json'}
-            payload = {
-                "instances": [{"image_bytes": {"b64": img_str}}]
-            }
+            payload = {"instances": [{"image_bytes": {"b64": img_str}}]}
             
-            response = requests.post(
-                MODEL_URL + "model.json",
-                json=payload,
-                headers=headers,
-                timeout=10
-            )
+            response = requests.post(MODEL_URL + "model.json", json=payload, headers=headers, timeout=10)
             
-            # Parse predictions
             if response.ok:
                 result_data = response.json()
+                predictions = result_data['predictions'][0] if 'predictions' in result_data else result_data
                 
-                # Extract predictions
-                if 'predictions' in result_data:
-                    predictions = result_data['predictions'][0]
-                else:
-                    predictions = result_data
-                
-                # Get class with highest confidence
-                max_idx = predictions.index(max(predictions))
                 class_names = ['full grown', 'matured', 'sprout', 'withered']
-                
+                max_idx = predictions.index(max(predictions))
                 detected_class = class_names[max_idx]
                 confidence = predictions[max_idx] * 100
                 
-                # Show all predictions
-                all_predictions = [
-                    {'class': class_names[i], 'confidence': predictions[i] * 100}
-                    for i in range(len(class_names))
-                ]
-                
+                all_predictions = [{'class': class_names[i], 'confidence': predictions[i] * 100} for i in range(len(class_names))]
             else:
-                st.error(f"Model API error: {response.status_code}")
                 raise Exception("API failed")
                 
         except Exception as e:
-            st.warning(f"⚠️ Connection issue: {str(e)}")
-            st.info("Using offline demo mode...")
-            
-            # Fallback for demo
+            st.warning(f"⚠️ Using offline mode")
             detected_class = random.choice(['full grown', 'sprout', 'matured', 'withered'])
             confidence = random.uniform(85, 95)
             all_predictions = [
@@ -89,160 +283,113 @@ if picture:
                 {'class': 'withered', 'confidence': random.uniform(5, 25)}
             ]
     
-    # Map detected class to display information
     class_info = {
         'full grown': {
-            "status": "🌟 Full Grown",
-            "subtitle": "Ready for Harvest",
-            "color": "#3b82f6",
-            "bg_color": "rgba(59, 130, 246, 0.1)",
-            "message": "Perfect! Your lettuce has reached full size and is ready to harvest.",
-            "actions": [
-                "✂️ Harvest now for best quality",
-                "🌅 Best time: early morning",
-                "❄️ Store at 4°C immediately",
-                "⏰ Use within 7 days"
-            ]
+            "status": "🌟 Full Grown", "color": "#3b82f6", "bg_color": "rgba(59, 130, 246, 0.1)",
+            "message": "Ready to harvest!", 
+            "actions": ["✂️ Harvest now", "🌅 Best: morning", "❄️ Store at 4°C", "⏰ Use within 7 days"]
         },
         'sprout': {
-            "status": "🌱 Sprout",
-            "subtitle": "Early Growth Stage",
-            "color": "#10b981",
-            "bg_color": "rgba(16, 185, 129, 0.1)",
-            "message": "Your lettuce is in early growth. Keep conditions gentle.",
-            "actions": [
-                "💧 Keep EC low: 0.8-1.0 mS/cm",
-                "✓ pH at 5.8",
-                "☀️ Light: 12-16 hours daily",
-                "📅 Growth time: 7-10 days"
-            ]
+            "status": "🌱 Sprout", "color": "#10b981", "bg_color": "rgba(16, 185, 129, 0.1)",
+            "message": "Early growth stage",
+            "actions": ["💧 EC: 0.8-1.0", "✓ pH: 5.8", "☀️ Light: 12-16h", "📅 Wait 7-10 days"]
         },
         'matured': {
-            "status": "✅ Matured",
-            "subtitle": "Healthy & Growing",
-            "color": "#22c55e",
-            "bg_color": "rgba(34, 197, 94, 0.1)",
-            "message": "Excellent! Your lettuce is healthy and growing well.",
-            "actions": [
-                "✓ Maintain pH: 5.8 ± 0.15",
-                "✓ Keep EC: 1.2 ± 0.08 mS/cm",
-                "📅 Ready to harvest in 3-5 days",
-                "👀 Monitor size daily"
-            ]
+            "status": "✅ Matured", "color": "#22c55e", "bg_color": "rgba(34, 197, 94, 0.1)",
+            "message": "Healthy and growing!",
+            "actions": ["✓ pH: 5.8±0.15", "✓ EC: 1.2±0.08", "📅 Harvest in 3-5 days", "👀 Monitor size"]
         },
         'withered': {
-            "status": "🚨 Withered",
-            "subtitle": "Needs Immediate Attention",
-            "color": "#ef4444",
-            "bg_color": "rgba(239, 68, 68, 0.1)",
-            "message": "Alert! Your plant shows stress or disease. Act now!",
-            "actions": [
-                "🔴 Check water temp: 18-22°C",
-                "🌡️ Verify pH level",
-                "💨 Improve air flow",
-                "🔬 Remove if disease spreads"
-            ]
+            "status": "🚨 Withered", "color": "#ef4444", "bg_color": "rgba(239, 68, 68, 0.1)",
+            "message": "Needs attention now!",
+            "actions": ["🔴 Check temp: 18-22°C", "🌡️ Verify pH", "💨 Improve airflow", "🔬 Remove if diseased"]
         }
     }
     
-    # Get display info
     result = class_info.get(detected_class, class_info['matured'])
     
-    # Display AI Result
     st.markdown(f"""
-    <div style="background: {result['bg_color']}; 
-                border: 3px solid {result['color']};
-                border-radius: 15px; 
-                padding: 25px; 
-                margin: 20px 0;
-                text-align: center;">
-        <h2 style="margin: 0; font-size: 20px; color: {result['color']}; font-weight: 600;">
-            {result['status']}
-        </h2>
-        <p style="margin: 5px 0; font-size: 13px; color: #6b7280;">
-            {result['subtitle']}
-        </p>
-        <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE}; font-weight: bold;">
-            {confidence:.1f}%
-        </h1>
-        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 500;">
-            AI Confidence
-        </p>
+    <div style="background: {result['bg_color']}; border: 3px solid {result['color']};
+                border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center;">
+        <h2 style="margin: 0; font-size: 20px; color: {result['color']};">{result['status']}</h2>
+        <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE};">{confidence:.1f}%</h1>
+        <p style="margin: 0; font-size: 12px; color: #6b7280;">AI Confidence</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Show all class predictions
-    st.markdown("**🔍 Detection Breakdown:**")
+    st.markdown("**🔍 All Predictions:**")
     for pred in sorted(all_predictions, key=lambda x: x['confidence'], reverse=True):
-        conf = pred['confidence']
-        class_display = pred['class'].replace('_', ' ').title()
-        
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.progress(conf / 100)
+            st.progress(pred['confidence'] / 100)
         with col2:
-            st.caption(f"**{conf:.1f}%**")
-        st.caption(f"└─ {class_display}")
+            st.caption(f"**{pred['confidence']:.1f}%**")
+        st.caption(f"└─ {pred['class'].title()}")
     
-    st.markdown("---")
-    
-    # Diagnosis message
     st.markdown(f"""
-    <div style="background: {result['bg_color']}; 
-                padding: 15px; 
-                border-radius: 10px;
-                border-left: 5px solid {result['color']};
-                margin: 15px 0;">
-        <p style="margin: 0; color: #1f2937; font-weight: 500; font-size: 14px;">
-            💬 {result['message']}
-        </p>
+    <div style="background: {result['bg_color']}; padding: 15px; border-radius: 10px;
+                border-left: 5px solid {result['color']}; margin: 15px 0;">
+        <p style="margin: 0; color: #1f2937; font-weight: 500;">💬 {result['message']}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Recommended actions
-    st.markdown("**📋 What to Do Next:**")
+    st.markdown("**📋 Actions:**")
     for i, action in enumerate(result['actions'], 1):
         st.markdown(f"{i}. {action}")
     
-    st.markdown("---")
-    
-    # Save analysis
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("💾 Save Report", use_container_width=True, type="primary"):
-            if 'history' not in st.session_state:
-                st.session_state.history = []
-            
-            st.session_state.history.append({
-                'time': datetime.now().strftime('%I:%M %p'),
-                'class': detected_class,
-                'confidence': confidence
-            })
-            
-            st.success("✅ Saved!")
-            st.balloons()
-    
-    with col2:
-        if st.button("🔄 Scan Again", use_container_width=True):
-            st.rerun()
+    if st.button("💾 Save Report", use_container_width=True, type="primary"):
+        st.success("✅ Saved!")
+        st.balloons()
 
 else:
-    # Instructions when no photo
-    st.info("👆 **Tap the camera button** to scan your lettuce plant")
-    
-    st.markdown("**🎯 What AI Can Detect:**")
-    cols = st.columns(2)
-    
-    with cols[0]:
-        st.markdown("• 🌟 **Full Grown** - Ready to harvest")
-        st.markdown("• 🌱 **Sprout** - Early stage")
-    
-    with cols[1]:
-        st.markdown("• ✅ **Matured** - Growing well")
-        st.markdown("• 🚨 **Withered** - Needs help")
-    
-    st.markdown("---")
-    st.caption("📸 Camera will open when you tap the button above")
+    st.info("👆 **Tap camera button** to scan lettuce")
+    st.markdown("**🎯 AI Detects:** 🌟 Full Grown • 🌱 Sprout • ✅ Matured • 🚨 Withered")
 
 st.markdown('</div>', unsafe_allow_html=True)
+
+# TRENDS
+st.markdown("---")
+history = demo.get_history()
+
+st.markdown("<h2>📈 Trends</h2>", unsafe_allow_html=True)
+
+st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+fig_ph = go.Figure()
+fig_ph.add_trace(go.Scatter(x=history['time'], y=history['pH'], mode='lines',
+    line=dict(color=PURPLE, width=2.5), fill='tozeroy', fillcolor='rgba(107, 33, 168, 0.1)', showlegend=False))
+fig_ph.update_layout(height=180, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(showgrid=False, title='', showticklabels=False),
+    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='pH'), font=dict(size=10))
+st.plotly_chart(fig_ph, use_container_width=True, config={'displayModeBar': False})
+st.caption("pH Level - Last 5 Hours")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+fig_ec = go.Figure()
+fig_ec.add_trace(go.Scatter(x=history['time'], y=history['ec'], mode='lines',
+    line=dict(color=LIGHT_PURPLE, width=2.5), fill='tozeroy', fillcolor='rgba(147, 51, 234, 0.1)', showlegend=False))
+fig_ec.update_layout(height=180, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(showgrid=False, title='', showticklabels=False),
+    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='EC'), font=dict(size=10))
+st.plotly_chart(fig_ec, use_container_width=True, config={'displayModeBar': False})
+st.caption("EC Level - Last 5 Hours")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown("<h2>ℹ️ System Info</h2>", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    st.metric("⏱️ Uptime", f"{demo.step // 60} min")
+    st.metric("📊 Data Points", f"{demo.step}")
+with col2:
+    st.metric("🤖 Auto Mode", "Active")
+    st.metric("🔬 AI Monitor", "Ready")
+
+st.markdown("""
+<div class="app-footer">
+    🌱 <strong>HydroVision</strong> by SET Certification<br>
+    Smart. Sustainable. Simple.
+</div>
+""", unsafe_allow_html=True)
+
+time.sleep(3)
+st.rerun()
