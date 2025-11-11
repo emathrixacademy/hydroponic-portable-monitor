@@ -1,480 +1,248 @@
-"""
-🌱 HydroVision - Mobile Demo
-Designed for presentation/pitch demo
-Simple, clean, mobile-first interface with AI Camera
-"""
-
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import numpy as np
-from datetime import datetime, timedelta
-import time
-import random
-
-st.set_page_config(
-    page_title="HydroVision",
-    page_icon="🌱",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
 # ═══════════════════════════════════════════
-# SET COLORS - Purple, White, Gold
-# ═══════════════════════════════════════════
-PURPLE = "#6B21A8"
-LIGHT_PURPLE = "#9333EA"
-GOLD = "#FCD34D"
-WHITE = "#FFFFFF"
-DARK = "#1a1a1a"
-
-# ═══════════════════════════════════════════
-# MOBILE PHONE STYLING
-# ═══════════════════════════════════════════
-st.markdown(f"""
-<style>
-    /* Remove Streamlit branding */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    header {{visibility: hidden;}}
-    .stDeployButton {{visibility: hidden;}}
-    
-    /* Mobile phone frame */
-    .main {{
-        max-width: 380px;
-        margin: 20px auto;
-        background: {WHITE};
-        padding: 0;
-        border-radius: 35px;
-        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
-        border: 14px solid {DARK};
-        position: relative;
-    }}
-    
-    /* Phone notch */
-    .main::before {{
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 150px;
-        height: 25px;
-        background: {DARK};
-        border-radius: 0 0 15px 15px;
-        z-index: 1000;
-    }}
-    
-    /* Scrollable content area */
-    .block-container {{
-        padding: 35px 20px 20px 20px;
-        max-height: 740px;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }}
-    
-    /* Custom scrollbar */
-    .block-container::-webkit-scrollbar {{
-        width: 4px;
-    }}
-    .block-container::-webkit-scrollbar-track {{
-        background: transparent;
-    }}
-    .block-container::-webkit-scrollbar-thumb {{
-        background: {PURPLE};
-        border-radius: 10px;
-    }}
-    
-    /* Header */
-    .app-header {{
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 15px 0;
-        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
-        border-radius: 15px;
-        color: {WHITE};
-    }}
-    .app-header h1 {{
-        font-size: 24px;
-        margin: 5px 0;
-        color: {GOLD};
-    }}
-    .app-header p {{
-        font-size: 12px;
-        margin: 0;
-        opacity: 0.9;
-    }}
-    
-    /* Metric cards */
-    .metric-card {{
-        background: linear-gradient(135deg, {PURPLE} 0%, {LIGHT_PURPLE} 100%);
-        color: {WHITE};
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        margin: 10px 0;
-        box-shadow: 0 4px 15px rgba(107,33,168,0.3);
-    }}
-    .metric-card h3 {{
-        font-size: 14px;
-        margin: 0 0 8px 0;
-        opacity: 0.9;
-        font-weight: 500;
-    }}
-    .metric-card h1 {{
-        font-size: 36px;
-        margin: 0;
-        color: {GOLD};
-        font-weight: bold;
-    }}
-    .metric-card p {{
-        font-size: 11px;
-        margin: 8px 0 0 0;
-        opacity: 0.8;
-    }}
-    
-    /* Status badge */
-    .status-badge {{
-        background: rgba(34, 197, 94, 0.2);
-        color: #22c55e;
-        padding: 8px 16px;
-        border-radius: 20px;
-        display: inline-block;
-        font-size: 12px;
-        font-weight: 600;
-        margin: 10px 0;
-    }}
-    
-    /* Section titles */
-    h2 {{
-        color: {PURPLE};
-        font-size: 18px;
-        margin: 20px 0 10px 0;
-        font-weight: 600;
-    }}
-    
-    /* Chart container */
-    .chart-container {{
-        background: #f9fafb;
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-    }}
-    
-    /* Footer */
-    .app-footer {{
-        text-align: center;
-        padding: 15px 0;
-        margin-top: 20px;
-        color: {PURPLE};
-        font-size: 11px;
-        border-top: 1px solid #e5e7eb;
-    }}
-    
-    /* Camera button styling */
-    .stCamera {{
-        border-radius: 15px;
-        overflow: hidden;
-    }}
-</style>
-""", unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════
-# SIMPLE DATA GENERATOR
-# ═══════════════════════════════════════════
-class DemoData:
-    def __init__(self):
-        self.ph = 5.80
-        self.ec = 1.20
-        self.temp = 20.5
-        self.step = 0
-    
-    def get_current(self):
-        self.step += 1
-        
-        # Natural variance
-        ph = self.ph + np.sin(self.step * 0.1) * 0.03 + np.random.normal(0, 0.02)
-        ec = self.ec + np.sin(self.step * 0.05) * 0.02 + np.random.normal(0, 0.01)
-        temp = self.temp + np.random.normal(0, 0.2)
-        
-        return {
-            'pH': round(ph, 2),
-            'ec': round(ec, 2),
-            'temp': round(temp, 1),
-            'time': datetime.now().strftime('%I:%M %p')
-        }
-    
-    def get_history(self, points=30):
-        history = []
-        for i in range(points):
-            t = datetime.now() - timedelta(minutes=i*10)
-            history.append({
-                'time': t,
-                'pH': 5.80 + np.sin(i * 0.2) * 0.08 + np.random.normal(0, 0.03),
-                'ec': 1.20 + np.sin(i * 0.15) * 0.04 + np.random.normal(0, 0.015)
-            })
-        return pd.DataFrame(history[::-1])
-
-if 'data' not in st.session_state:
-    st.session_state.data = DemoData()
-
-demo = st.session_state.data
-
-# ═══════════════════════════════════════════
-# APP HEADER
-# ═══════════════════════════════════════════
-st.markdown(f"""
-<div class="app-header">
-    <h1>🌱 HydroVision</h1>
-    <p>Smart Hydroponic Monitoring</p>
-</div>
-""", unsafe_allow_html=True)
-
-# System status
-st.markdown('<div class="status-badge">🟢 System Online</div>', unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════
-# CURRENT READINGS
-# ═══════════════════════════════════════════
-current = demo.get_current()
-
-st.markdown(f"<p style='text-align:center; color:#6b7280; font-size:11px; margin:10px 0;'>Last updated: {current['time']}</p>", unsafe_allow_html=True)
-
-# pH Level
-st.markdown(f"""
-<div class="metric-card">
-    <h3>pH Level</h3>
-    <h1>{current['pH']:.2f}</h1>
-    <p>Target: 5.8 ± 0.15</p>
-</div>
-""", unsafe_allow_html=True)
-
-# EC Level
-st.markdown(f"""
-<div class="metric-card">
-    <h3>EC Level</h3>
-    <h1>{current['ec']:.2f}</h1>
-    <p>Target: 1.2 ± 0.08 mS/cm</p>
-</div>
-""", unsafe_allow_html=True)
-
-# Water Temperature
-st.markdown(f"""
-<div class="metric-card">
-    <h3>Water Temperature</h3>
-    <h1>{current['temp']:.1f}°C</h1>
-    <p>Optimal: 18-22°C</p>
-</div>
-""", unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════
-# AI PLANT HEALTH CAMERA
+# AI PLANT HEALTH CAMERA (REAL TEACHABLE MACHINE)
 # ═══════════════════════════════════════════
 st.markdown("<h2>📷 AI Plant Health Scanner</h2>", unsafe_allow_html=True)
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 
-# Camera input - opens laptop/phone camera
+# Camera input - ALWAYS VISIBLE
 picture = st.camera_input("📸 Capture your lettuce plant", label_visibility="visible")
 
 if picture:
     # Show captured image
     st.image(picture, use_column_width=True, caption="Captured Image")
     
-    # Simulate AI analysis
-    with st.spinner("🤖 Analyzing plant health with AI..."):
-        time.sleep(2)  # Simulate processing time
-        
-        # AI Results (simulated - 4 possible outcomes)
-        ai_results = [
-            {
-                "status": "✅ Healthy",
-                "confidence": 94.2,
-                "color": "#22c55e",
-                "bg_color": "rgba(34, 197, 94, 0.1)",
-                "message": "Your lettuce is healthy! Continue current care routine.",
-                "actions": [
-                    "✓ Maintain pH at 5.8 ± 0.15",
-                    "✓ Keep EC at 1.2 ± 0.08 mS/cm",
-                    "✓ Monitor daily for any changes",
-                    "✓ Harvest in 5-7 days if full-grown"
-                ]
-            },
-            {
-                "status": "⚠️ Nutrient Deficiency",
-                "confidence": 88.5,
-                "color": "#f59e0b",
-                "bg_color": "rgba(245, 158, 11, 0.1)",
-                "message": "Nutrient deficiency detected. Adjust feeding schedule.",
-                "actions": [
-                    "↑ Increase EC to 1.3-1.4 mS/cm",
-                    "✓ Verify pH is at 5.8",
-                    "💧 Add balanced nutrient solution",
-                    "📅 Re-check in 48 hours"
-                ]
-            },
-            {
-                "status": "🚨 Disease/Stress",
-                "confidence": 85.3,
-                "color": "#ef4444",
-                "bg_color": "rgba(239, 68, 68, 0.1)",
-                "message": "Possible disease or stress detected! Take action immediately.",
-                "actions": [
-                    "🔴 Isolate affected plants now",
-                    "🌡️ Check water temp (18-22°C)",
-                    "💨 Improve air circulation",
-                    "🔬 Consider treatment or removal"
-                ]
-            },
-            {
-                "status": "🌟 Ready for Harvest",
-                "confidence": 91.8,
-                "color": "#3b82f6",
-                "bg_color": "rgba(59, 130, 246, 0.1)",
-                "message": "Plant has reached optimal size! Ready to harvest.",
-                "actions": [
-                    "✂️ Harvest when leaves are crisp",
-                    "🌅 Best time: morning hours",
-                    "❄️ Store at 4°C with high humidity",
-                    "⏰ Use within 7 days for best quality"
-                ]
+    # Analyze with REAL Teachable Machine
+    with st.spinner("🤖 Analyzing with AI model..."):
+        try:
+            import requests
+            from PIL import Image
+            import io
+            import base64
+            
+            # Your Teachable Machine model
+            MODEL_URL = "https://teachablemachine.withgoogle.com/models/GU_vNr8UW/"
+            
+            # Open and prepare image
+            img = Image.open(picture)
+            
+            # Resize to 224x224 (Teachable Machine requirement)
+            img = img.resize((224, 224))
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Convert image to base64
+            buffered = io.BytesIO()
+            img.save(buffered, format="JPEG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+            
+            # Call Teachable Machine API
+            headers = {'Content-Type': 'application/json'}
+            payload = {
+                "instances": [{"image_bytes": {"b64": img_str}}]
             }
-        ]
-        
-        # Pick random result for demo
-        result = random.choice(ai_results)
+            
+            response = requests.post(
+                MODEL_URL + "model.json",
+                json=payload,
+                headers=headers,
+                timeout=10
+            )
+            
+            # Parse predictions
+            if response.ok:
+                result_data = response.json()
+                
+                # Extract predictions
+                if 'predictions' in result_data:
+                    predictions = result_data['predictions'][0]
+                else:
+                    predictions = result_data
+                
+                # Get class with highest confidence
+                max_idx = predictions.index(max(predictions))
+                class_names = ['full grown', 'matured', 'sprout', 'withered']
+                
+                detected_class = class_names[max_idx]
+                confidence = predictions[max_idx] * 100
+                
+                # Show all predictions
+                all_predictions = [
+                    {'class': class_names[i], 'confidence': predictions[i] * 100}
+                    for i in range(len(class_names))
+                ]
+                
+            else:
+                st.error(f"Model API error: {response.status_code}")
+                raise Exception("API failed")
+                
+        except Exception as e:
+            st.warning(f"⚠️ Connection issue: {str(e)}")
+            st.info("Using offline demo mode...")
+            
+            # Fallback for demo
+            detected_class = random.choice(['full grown', 'sprout', 'matured', 'withered'])
+            confidence = random.uniform(85, 95)
+            all_predictions = [
+                {'class': 'full grown', 'confidence': random.uniform(20, 95)},
+                {'class': 'sprout', 'confidence': random.uniform(5, 30)},
+                {'class': 'matured', 'confidence': random.uniform(10, 40)},
+                {'class': 'withered', 'confidence': random.uniform(5, 25)}
+            ]
     
-    # Show AI Result Card
+    # Map detected class to display information
+    class_info = {
+        'full grown': {
+            "status": "🌟 Full Grown",
+            "subtitle": "Ready for Harvest",
+            "color": "#3b82f6",
+            "bg_color": "rgba(59, 130, 246, 0.1)",
+            "message": "Perfect! Your lettuce has reached full size and is ready to harvest.",
+            "actions": [
+                "✂️ Harvest now for best quality",
+                "🌅 Best time: early morning",
+                "❄️ Store at 4°C immediately",
+                "⏰ Use within 7 days"
+            ]
+        },
+        'sprout': {
+            "status": "🌱 Sprout",
+            "subtitle": "Early Growth Stage",
+            "color": "#10b981",
+            "bg_color": "rgba(16, 185, 129, 0.1)",
+            "message": "Your lettuce is in early growth. Keep conditions gentle.",
+            "actions": [
+                "💧 Keep EC low: 0.8-1.0 mS/cm",
+                "✓ pH at 5.8",
+                "☀️ Light: 12-16 hours daily",
+                "📅 Growth time: 7-10 days"
+            ]
+        },
+        'matured': {
+            "status": "✅ Matured",
+            "subtitle": "Healthy & Growing",
+            "color": "#22c55e",
+            "bg_color": "rgba(34, 197, 94, 0.1)",
+            "message": "Excellent! Your lettuce is healthy and growing well.",
+            "actions": [
+                "✓ Maintain pH: 5.8 ± 0.15",
+                "✓ Keep EC: 1.2 ± 0.08 mS/cm",
+                "📅 Ready to harvest in 3-5 days",
+                "👀 Monitor size daily"
+            ]
+        },
+        'withered': {
+            "status": "🚨 Withered",
+            "subtitle": "Needs Immediate Attention",
+            "color": "#ef4444",
+            "bg_color": "rgba(239, 68, 68, 0.1)",
+            "message": "Alert! Your plant shows stress or disease. Act now!",
+            "actions": [
+                "🔴 Check water temp: 18-22°C",
+                "🌡️ Verify pH level",
+                "💨 Improve air flow",
+                "🔬 Remove if disease spreads"
+            ]
+        }
+    }
+    
+    # Get display info
+    result = class_info.get(detected_class, class_info['matured'])
+    
+    # Display AI Result
     st.markdown(f"""
     <div style="background: {result['bg_color']}; 
-                border: 2px solid {result['color']};
+                border: 3px solid {result['color']};
                 border-radius: 15px; 
-                padding: 20px; 
-                margin: 15px 0;
+                padding: 25px; 
+                margin: 20px 0;
                 text-align: center;">
-        <h2 style="margin: 0; font-size: 20px; color: {result['color']};">
+        <h2 style="margin: 0; font-size: 20px; color: {result['color']}; font-weight: 600;">
             {result['status']}
         </h2>
-        <h1 style="margin: 10px 0; font-size: 48px; color: {PURPLE}; font-weight: bold;">
-            {result['confidence']:.1f}%
+        <p style="margin: 5px 0; font-size: 13px; color: #6b7280;">
+            {result['subtitle']}
+        </p>
+        <h1 style="margin: 15px 0 5px 0; font-size: 52px; color: {PURPLE}; font-weight: bold;">
+            {confidence:.1f}%
         </h1>
-        <p style="margin: 0; font-size: 13px; color: #6b7280;">
-            AI Confidence Level
+        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 500;">
+            AI Confidence
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Show diagnosis message
+    # Show all class predictions
+    st.markdown("**🔍 Detection Breakdown:**")
+    for pred in sorted(all_predictions, key=lambda x: x['confidence'], reverse=True):
+        conf = pred['confidence']
+        class_display = pred['class'].replace('_', ' ').title()
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.progress(conf / 100)
+        with col2:
+            st.caption(f"**{conf:.1f}%**")
+        st.caption(f"└─ {class_display}")
+    
+    st.markdown("---")
+    
+    # Diagnosis message
     st.markdown(f"""
     <div style="background: {result['bg_color']}; 
                 padding: 15px; 
                 border-radius: 10px;
-                border-left: 4px solid {result['color']};
-                margin: 10px 0;">
-        <p style="margin: 0; color: #1f2937; font-weight: 500;">
-            {result['message']}
+                border-left: 5px solid {result['color']};
+                margin: 15px 0;">
+        <p style="margin: 0; color: #1f2937; font-weight: 500; font-size: 14px;">
+            💬 {result['message']}
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Show recommended actions
-    st.markdown("**📋 Recommended Actions:**")
-    for action in result['actions']:
-        st.markdown(f"• {action}")
+    # Recommended actions
+    st.markdown("**📋 What to Do Next:**")
+    for i, action in enumerate(result['actions'], 1):
+        st.markdown(f"{i}. {action}")
     
-    # Save button
-    if st.button("💾 Save Analysis Report", use_container_width=True, type="primary"):
-        st.success("✅ Analysis saved successfully!")
-        st.balloons()
-        time.sleep(1)
+    st.markdown("---")
+    
+    # Save analysis
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("💾 Save Report", use_container_width=True, type="primary"):
+            if 'history' not in st.session_state:
+                st.session_state.history = []
+            
+            st.session_state.history.append({
+                'time': datetime.now().strftime('%I:%M %p'),
+                'class': detected_class,
+                'confidence': confidence
+            })
+            
+            st.success("✅ Saved!")
+            st.balloons()
+    
+    with col2:
+        if st.button("🔄 Scan Again", use_container_width=True):
+            st.rerun()
 
 else:
-    st.info("👆 **Tap the camera button above** to scan your lettuce plant and get instant AI health analysis!")
+    # Instructions when no photo
+    st.info("👆 **Tap the camera button** to scan your lettuce plant")
+    
+    st.markdown("**🎯 What AI Can Detect:**")
+    cols = st.columns(2)
+    
+    with cols[0]:
+        st.markdown("• 🌟 **Full Grown** - Ready to harvest")
+        st.markdown("• 🌱 **Sprout** - Early stage")
+    
+    with cols[1]:
+        st.markdown("• ✅ **Matured** - Growing well")
+        st.markdown("• 🚨 **Withered** - Needs help")
+    
+    st.markdown("---")
+    st.caption("📸 Camera will open when you tap the button above")
 
 st.markdown('</div>', unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════
-# TREND GRAPHS
-# ═══════════════════════════════════════════
-st.markdown("---")
-history = demo.get_history()
-
-st.markdown("<h2>📈 Trends</h2>", unsafe_allow_html=True)
-
-# pH Trend
-st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-fig_ph = go.Figure()
-fig_ph.add_trace(go.Scatter(
-    x=history['time'],
-    y=history['pH'],
-    mode='lines',
-    line=dict(color=PURPLE, width=2.5),
-    fill='tozeroy',
-    fillcolor=f'rgba(107, 33, 168, 0.1)',
-    showlegend=False
-))
-fig_ph.update_layout(
-    height=180,
-    margin=dict(l=10, r=10, t=10, b=10),
-    plot_bgcolor='rgba(0,0,0,0)',
-    paper_bgcolor='rgba(0,0,0,0)',
-    xaxis=dict(showgrid=False, title='', showticklabels=False),
-    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='pH'),
-    font=dict(size=10)
-)
-st.plotly_chart(fig_ph, use_container_width=True, config={'displayModeBar': False})
-st.caption("pH Level - Last 5 Hours")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# EC Trend
-st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-fig_ec = go.Figure()
-fig_ec.add_trace(go.Scatter(
-    x=history['time'],
-    y=history['ec'],
-    mode='lines',
-    line=dict(color=LIGHT_PURPLE, width=2.5),
-    fill='tozeroy',
-    fillcolor=f'rgba(147, 51, 234, 0.1)',
-    showlegend=False
-))
-fig_ec.update_layout(
-    height=180,
-    margin=dict(l=10, r=10, t=10, b=10),
-    plot_bgcolor='rgba(0,0,0,0)',
-    paper_bgcolor='rgba(0,0,0,0)',
-    xaxis=dict(showgrid=False, title='', showticklabels=False),
-    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='EC (mS/cm)'),
-    font=dict(size=10)
-)
-st.plotly_chart(fig_ec, use_container_width=True, config={'displayModeBar': False})
-st.caption("EC Level - Last 5 Hours")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════
-# SYSTEM INFO
-# ═══════════════════════════════════════════
-st.markdown("<h2>ℹ️ System Info</h2>", unsafe_allow_html=True)
-
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("⏱️ Uptime", f"{demo.step // 60} min")
-    st.metric("📊 Data Points", f"{demo.step}")
-with col2:
-    st.metric("🤖 Auto Mode", "Active")
-    st.metric("🔬 AI Monitor", "Ready")
-
-# ═══════════════════════════════════════════
-# FOOTER
-# ═══════════════════════════════════════════
-st.markdown("""
-<div class="app-footer">
-    🌱 <strong>HydroVision</strong> by SET Certification<br>
-    Smart. Sustainable. Simple.
-</div>
-""", unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════
-# AUTO-REFRESH (every 3 seconds)
-# ═══════════════════════════════════════════
-time.sleep(3)
-st.rerun()
